@@ -1,0 +1,413 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
+import {
+  Heart,
+  ShoppingBag,
+  ArrowUpRight,
+  ArrowLeft,
+  ShieldCheck,
+  Truck,
+  RotateCcw,
+  Layers,
+} from 'lucide-react';
+import { useProductStore } from '../store/useProductStore';
+import { useWishlistStore } from '../store/useWishlistStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { Badge } from '../components/common/Badge';
+import { StatusBadge } from '../components/admin/StatusBadge';
+import { ProductCard } from '../components/catalog/ProductCard';
+import { ColorSwatchPicker } from '../components/catalog/ColorSwatchPicker';
+import { ProductVariant } from '../types/database';
+
+export const ProductDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { products, loadInitialData } = useProductStore();
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
+  const { getProductWALink, settings } = useSettingsStore();
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  const product = products.find((p) => p.id === id || p.slug === id);
+
+  // Variant resolution
+  const variantParam = searchParams.get('variant') || searchParams.get('color');
+  const initialVariant =
+    (product?.variants && variantParam
+      ? product.variants.find(
+          (v) => v.id === variantParam || v.color_name.toLowerCase() === variantParam.toLowerCase()
+        )
+      : null) ||
+    product?.variants?.find((v) => v.is_default && v.is_active !== false) ||
+    product?.variants?.find((v) => v.is_active !== false) ||
+    product?.variants?.[0];
+
+  const [activeVariant, setActiveVariant] = useState<ProductVariant | undefined>(initialVariant);
+
+  // Sync state when product or search param changes
+  useEffect(() => {
+    if (!product) return;
+    const vMatch =
+      (product.variants && variantParam
+        ? product.variants.find(
+            (v) => v.id === variantParam || v.color_name.toLowerCase() === variantParam.toLowerCase()
+          )
+        : null) ||
+      product.variants?.find((v) => v.is_default && v.is_active !== false) ||
+      product.variants?.find((v) => v.is_active !== false) ||
+      product.variants?.[0];
+
+    setActiveVariant(vMatch);
+  }, [product, variantParam]);
+
+  const handleSelectVariant = (variant: ProductVariant) => {
+    setActiveVariant(variant);
+    setActiveImageIndex(0); // Reset gallery to first image of the selected variant
+    setSearchParams({ variant: variant.id }, { replace: true });
+  };
+
+  if (!product) {
+    return (
+      <div className="pt-36 pb-24 px-4 text-center max-w-lg mx-auto min-h-[60vh] flex flex-col items-center justify-center">
+        <h2 className="editorial-title text-3xl mb-4">Frame Not Found</h2>
+        <p className="text-sm text-neutral-500 mb-6">
+          The requested eyewear silhouette could not be found or has been archived.
+        </p>
+        <Link
+          to="/catalog"
+          className="px-6 py-3 bg-neutral-900 text-white rounded-full text-xs uppercase tracking-wider font-semibold hover:bg-neutral-800 transition-colors"
+        >
+          Return to Catalog
+        </Link>
+      </div>
+    );
+  }
+
+  const inWishlist = isInWishlist(product.id);
+  const related = products
+    .filter((p) => p.id !== product.id && p.category === product.category && p.published)
+    .slice(0, 3);
+
+  // Images from active variant or fallback to base product images
+  const variantImages =
+    activeVariant?.images && activeVariant.images.length > 0
+      ? activeVariant.images
+      : product.images && product.images.length > 0
+      ? product.images
+      : [
+          {
+            image_url: '/assets/images/cervula.jpg',
+            image_type: 'Primary' as const,
+            sort_order: 1,
+            alt_text: product.name,
+          },
+        ];
+
+  const currentImage = variantImages[activeImageIndex] || variantImages[0];
+
+  // Dynamic pricing, stock, SKU, and links based on active variant
+  const currentPrice = activeVariant?.price || product.price;
+  const currentCompareAt = activeVariant?.compare_at_price || product.compare_at_price;
+  const currentStock = activeVariant?.stock_status || product.stock_status;
+  const currentSku = activeVariant?.sku || product.sku;
+  const shopeeUrl =
+    activeVariant?.shopee_url || product.shopee_url || settings.shopee_url || 'https://shopee.co.id';
+  const whatsappLensUrl = getProductWALink(
+    product.name,
+    activeVariant?.color_name || product.color
+  );
+
+  return (
+    <div className="pt-28 sm:pt-36 pb-24 px-4 sm:px-8 max-w-7xl mx-auto min-h-screen">
+      {/* Top Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mb-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 hover:text-black transition-colors"
+        >
+          <ArrowLeft size={14} /> Back
+        </button>
+        <span>/</span>
+        <Link to="/" className="hover:text-black">Home</Link>
+        <span>/</span>
+        <Link to="/catalog" className="hover:text-black">Catalog</Link>
+        <span>/</span>
+        <span className="text-neutral-900 font-bold">{product.name}</span>
+      </div>
+
+      {/* Main Detail Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mb-24">
+        {/* Left: Interactive Media Gallery (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="relative aspect-[4/3] sm:aspect-[16/11] bg-[#f8f8fa] rounded-3xl overflow-hidden flex items-center justify-center p-8 border border-neutral-100 shadow-xs">
+            <img
+              key={currentImage.image_url}
+              src={currentImage.image_url}
+              alt={currentImage.alt_text || `${product.name} - ${activeVariant?.color_name}`}
+              className={`w-full h-full ${
+                currentImage.image_type === 'Lifestyle' || currentImage.image_type === 'Campaign'
+                  ? 'object-cover'
+                  : 'object-contain'
+              } drop-shadow-md transition-all duration-500`}
+            />
+
+            {product.badge && (
+              <div className="absolute top-5 left-5">
+                <Badge variant="glass" className="font-semibold">
+                  {product.badge}
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnails Strip */}
+          {variantImages.length > 1 && (
+            <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              {variantImages.map((img, idx) => (
+                <button
+                  key={`${img.image_url}-${idx}`}
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#f8f8fa] p-1.5 overflow-hidden border-2 transition-all shrink-0 ${
+                    activeImageIndex === idx
+                      ? 'border-neutral-900 shadow-sm scale-102'
+                      : 'border-transparent opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={img.image_url}
+                    alt={img.alt_text || `Angle ${idx + 1}`}
+                    className={`w-full h-full ${
+                      img.image_type === 'Lifestyle' || img.image_type === 'Campaign'
+                        ? 'object-cover rounded-xl'
+                        : 'object-contain'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Specifications & Purchase Actions (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-neutral-400 font-bold mb-2">
+              <span>{product.edition || '2026 Studio Collection'}</span>
+              <span className="text-neutral-900">{product.category}</span>
+            </div>
+
+            <h1 className="editorial-title text-3xl sm:text-4xl lg:text-5xl text-neutral-900 uppercase mb-3 leading-tight">
+              {product.name}
+            </h1>
+
+            {/* Price & Stock status */}
+            <div className="flex items-baseline gap-3 mb-6">
+              <span className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
+                {currentPrice}
+              </span>
+              {currentCompareAt && (
+                <span className="text-sm text-neutral-400 line-through">
+                  {currentCompareAt}
+                </span>
+              )}
+              <span className="ml-auto">
+                <StatusBadge status={currentStock} size="md" />
+              </span>
+            </div>
+
+            {/* Color Swatches Selector */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="mb-6 p-4 rounded-2xl bg-neutral-50/80 border border-neutral-200/70">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                    Selected Colorway
+                  </span>
+                  <span className="text-xs font-semibold text-neutral-900">
+                    {activeVariant?.color_name || 'Standard'}
+                  </span>
+                </div>
+                <ColorSwatchPicker
+                  variants={product.variants}
+                  activeVariantId={activeVariant?.id || ''}
+                  onSelectVariant={handleSelectVariant}
+                  size="md"
+                />
+              </div>
+            )}
+
+            <p className="text-sm text-neutral-600 font-light leading-relaxed mb-6">
+              {product.description || product.short_description}
+            </p>
+
+            {/* Specifications Matrix */}
+            <div className="bg-neutral-50 rounded-2xl p-5 mb-8 border border-neutral-200/60">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">
+                Frame & Discovery Specifications
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
+                    Silhouette Shape
+                  </span>
+                  <span className="text-neutral-800 font-medium">
+                    {product.frame_shape_obj?.name || product.frame_shape || 'Round Studio'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
+                    SKU Code
+                  </span>
+                  <span className="text-neutral-800 font-medium">
+                    {currentSku || 'JL-OPT-STD'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
+                    Material
+                  </span>
+                  <span className="text-neutral-800 font-medium">
+                    {product.material || 'Italian Cellulose Acetate'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
+                    Caliber / Dimensions
+                  </span>
+                  <span className="text-neutral-800 font-medium">
+                    {[product.lens_width, product.bridge_width, product.temple_length]
+                      .filter(Boolean)
+                      .join(' - ') || 'Universal Fit'}
+                  </span>
+                </div>
+
+                {/* Suitable Face Shapes */}
+                {product.suitable_face_shapes && product.suitable_face_shapes.length > 0 && (
+                  <div className="col-span-2 pt-2 border-t border-neutral-200/50">
+                    <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1">
+                      Harmonious Face Shapes
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.suitable_face_shapes.map((fs) => (
+                        <span
+                          key={fs.id}
+                          className="px-2.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[11px] font-medium"
+                        >
+                          {fs.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Curated Occasions */}
+                {product.occasions && product.occasions.length > 0 && (
+                  <div className="col-span-2 pt-2 border-t border-neutral-200/50">
+                    <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1">
+                      Curated Occasions
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.occasions.map((occ) => (
+                        <span
+                          key={occ.id}
+                          className="px-2.5 py-0.5 rounded-full bg-neutral-900 text-white text-[11px] font-medium"
+                        >
+                          {occ.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Purchase & Consultation Flow Actions */}
+            <div className="space-y-3 mb-8">
+              <div className="flex gap-3">
+                {/* Primary Action: BUY ON SHOPEE */}
+                <a
+                  href={shopeeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`flex-1 py-4 px-8 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all hover:shadow-xl active:scale-98 ${
+                    currentStock === 'Sold Out'
+                      ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed pointer-events-none'
+                      : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <ShoppingBag size={17} />
+                  <span>{currentStock === 'Sold Out' ? 'Out of Stock on Shopee' : 'Buy on Shopee'}</span>
+                </a>
+
+                {/* Wishlist Button */}
+                <button
+                  onClick={() => toggleWishlist(product.id)}
+                  className={`p-4 rounded-full border transition-colors flex items-center justify-center ${
+                    inWishlist
+                      ? 'border-rose-200 bg-rose-50 text-rose-500'
+                      : 'border-neutral-200 hover:border-black text-neutral-700'
+                  }`}
+                  aria-label="Save to Wishlist"
+                >
+                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                </button>
+              </div>
+
+              {/* Secondary Action: CUSTOMIZE WITH LENS */}
+              <a
+                href={whatsappLensUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <Layers size={16} />
+                <span>Customize with Lens via WhatsApp ({activeVariant?.color_name || 'Selected Color'})</span>
+                <ArrowUpRight size={15} />
+              </a>
+            </div>
+
+            {/* Assurance Guarantees */}
+            <div className="grid grid-cols-3 gap-2 pt-6 border-t border-neutral-100 text-center text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">
+              <div className="flex flex-col items-center gap-1.5">
+                <ShieldCheck size={18} className="text-neutral-700" />
+                <span>Authentic Acetate</span>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <Truck size={18} className="text-neutral-700" />
+                <span>Insured Shipping</span>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <RotateCcw size={18} className="text-neutral-700" />
+                <span>7-Day Fit Guarantee</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Related Silhouettes */}
+      {related.length > 0 && (
+        <section className="border-t border-neutral-100 pt-16">
+          <div className="text-center mb-10">
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 block mb-1">
+              Curated Complements
+            </span>
+            <h2 className="editorial-title text-2xl sm:text-3xl uppercase">
+              Similar Silhouettes
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
