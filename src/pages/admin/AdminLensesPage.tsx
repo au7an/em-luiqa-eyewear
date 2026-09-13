@@ -91,11 +91,28 @@ export const AdminLensesPage: React.FC = () => {
       ),
     },
     {
-      header: 'Features',
-      className: 'w-48',
+      header: 'Compatibility',
+      className: 'w-52',
       render: (l) => (
-        <div className="text-[11px] text-neutral-500 line-clamp-2">
-          {l.features?.length > 0 ? l.features.join(' • ') : 'No features listed'}
+        <div className="flex flex-wrap gap-1">
+          {l.supports_non_prescription && (
+            <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded font-medium">
+              Plano
+            </span>
+          )}
+          {l.supported_vision_types?.map((vt) => (
+            <span
+              key={vt}
+              className="text-[10px] bg-neutral-100 text-neutral-700 border border-neutral-200 px-1.5 py-0.5 rounded font-medium"
+            >
+              {vt}
+            </span>
+          ))}
+          {l.lens_options && l.lens_options.length > 0 && (
+            <span className="text-[10px] bg-neutral-900 text-white px-1.5 py-0.5 rounded font-medium">
+              {l.lens_options.length} Options
+            </span>
+          )}
         </div>
       ),
     },

@@ -141,6 +141,21 @@ export interface Campaign {
 
 export type LensCategory = 'Single Vision' | 'Bifocal' | 'Progressive' | 'Specialty';
 
+export type VisionType = 'Single Vision' | 'Bifocal' | 'Progressive';
+
+export interface LensOptionChoice {
+  id?: string;
+  label: string;
+  extra_price?: number; // e.g. 0 or 50000
+}
+
+export interface LensOption {
+  id: string;
+  name: string; // e.g. "Tint Color", "Lens Coating"
+  description?: string;
+  choices: LensOptionChoice[];
+}
+
 export interface LensService {
   id: string;
   name: string;
@@ -154,9 +169,41 @@ export interface LensService {
   recommended_for?: string;
   sort_order: number;
   active: boolean;
+  
+  // Customization & Compatibility Rules
+  supports_non_prescription?: boolean;
+  supported_vision_types?: VisionType[];
+  lens_options?: LensOption[];
+  
   created_at?: string;
   updated_at?: string;
 }
+
+export type LensRequirement = 'non-prescription' | 'prescription';
+
+export interface PrescriptionEye {
+  sph: string;
+  cyl: string;
+  axis: string;
+}
+
+export interface PrescriptionData {
+  od: PrescriptionEye;
+  os: PrescriptionEye;
+  pd: string;
+  unsure: boolean; // "I'm not sure / need help reading prescription"
+  notes?: string;
+}
+
+export interface CustomLensSelection {
+  requirement: LensRequirement;
+  visionType?: VisionType;
+  prescription?: PrescriptionData;
+  lensService?: LensService;
+  selectedOptions?: Record<string, string>; // optionId -> choiceLabel
+  estimatedTotalPrice?: string;
+}
+
 
 export interface Promotion {
   id: string;

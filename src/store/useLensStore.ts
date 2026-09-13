@@ -16,6 +16,9 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Everyday single-vision correction for distance or reading.',
     sort_order: 1,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [],
   },
   {
     id: 'lens-02',
@@ -30,6 +33,18 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Professionals & creatives with extensive daily screen time.',
     sort_order: 2,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [
+      {
+        id: 'blue-filter-grade',
+        name: 'Blue Filter Profile',
+        choices: [
+          { label: 'Standard Digital Clear (Natural Tint)', extra_price: 0 },
+          { label: 'Max Defense 420nm (Subtle Amber Glaze)', extra_price: 30000 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-03',
@@ -44,6 +59,18 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Prescriptions above -3.00 requiring lighter, thinner aesthetic lenses.',
     sort_order: 3,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [
+      {
+        id: 'index-profile',
+        name: 'Thin Index Profile',
+        choices: [
+          { label: '1.60 Ultra-Thin (Up to -4.50 SPH)', extra_price: 0 },
+          { label: '1.67 Razor-Thin (Up to -7.00 SPH)', extra_price: 90000 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-04',
@@ -58,6 +85,9 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Night drivers, commuters, and light-sensitive individuals.',
     sort_order: 4,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [],
   },
   {
     id: 'lens-05',
@@ -72,6 +102,19 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Those who transition frequently between indoor work and outdoor sunlight.',
     sort_order: 5,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [
+      {
+        id: 'transition-shade',
+        name: 'Transition Tint Shade',
+        choices: [
+          { label: 'Adaptive Grey (Neutral Balance)', extra_price: 0 },
+          { label: 'Warm Amber Brown (High Contrast)', extra_price: 0 },
+          { label: 'Sapphire Midnight Glow', extra_price: 50000 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-06',
@@ -86,6 +129,18 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Users demanding complete digital screen protection and outdoor solar tint in a single pair.',
     sort_order: 6,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [
+      {
+        id: 'transition-shade',
+        name: 'Transition Tint Shade',
+        choices: [
+          { label: 'Adaptive Grey (Grey Transitions)', extra_price: 0 },
+          { label: 'Warm Amber Brown', extra_price: 0 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-07',
@@ -100,6 +155,19 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Outdoor sports, driving, maritime, and intense sun exposure.',
     sort_order: 7,
     active: true,
+    supports_non_prescription: true,
+    supported_vision_types: ['Single Vision'],
+    lens_options: [
+      {
+        id: 'polarized-color',
+        name: 'Polarized Lens Color',
+        choices: [
+          { label: 'Deep Charcoal Grey 85%', extra_price: 0 },
+          { label: 'Tortoise Earth Brown 80%', extra_price: 0 },
+          { label: 'Classic Aviator G-15 Green', extra_price: 0 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-08',
@@ -114,6 +182,18 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Individuals experiencing presbyopia requiring clear vision at all distances without switching glasses.',
     sort_order: 8,
     active: true,
+    supports_non_prescription: false,
+    supported_vision_types: ['Progressive'],
+    lens_options: [
+      {
+        id: 'corridor-type',
+        name: 'Multifocal Corridor Profile',
+        choices: [
+          { label: 'Standard Balanced Corridor', extra_price: 0 },
+          { label: 'Ultra-Wide Digital Work Corridor', extra_price: 100000 },
+        ],
+      },
+    ],
   },
   {
     id: 'lens-09',
@@ -128,8 +208,40 @@ const DEFAULT_LENSES: LensService[] = [
     recommended_for: 'Wearers accustomed to classic bifocal segment geometry.',
     sort_order: 9,
     active: true,
+    supports_non_prescription: false,
+    supported_vision_types: ['Bifocal'],
+    lens_options: [
+      {
+        id: 'bifocal-type',
+        name: 'Segment Design',
+        choices: [
+          { label: 'Classic Flattop 28mm Segment', extra_price: 0 },
+          { label: 'Kryptok Invisible Round Segment', extra_price: 0 },
+        ],
+      },
+    ],
   },
 ];
+
+const formatLensItem = (d: any): LensService => ({
+  ...d,
+  features: Array.isArray(d.features)
+    ? d.features
+    : typeof d.features === 'string'
+    ? JSON.parse(d.features)
+    : [],
+  supports_non_prescription: d.supports_non_prescription ?? true,
+  supported_vision_types: Array.isArray(d.supported_vision_types)
+    ? d.supported_vision_types
+    : typeof d.supported_vision_types === 'string'
+    ? JSON.parse(d.supported_vision_types)
+    : ['Single Vision'],
+  lens_options: Array.isArray(d.lens_options)
+    ? d.lens_options
+    : typeof d.lens_options === 'string'
+    ? JSON.parse(d.lens_options)
+    : [],
+});
 
 interface LensState {
   lenses: LensService[];
@@ -168,10 +280,7 @@ export const useLensStore = create<LensState>((set, get) => ({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const formatted: LensService[] = data.map((d: any) => ({
-          ...d,
-          features: Array.isArray(d.features) ? d.features : typeof d.features === 'string' ? JSON.parse(d.features) : [],
-        }));
+        const formatted: LensService[] = data.map(formatLensItem);
         set({ lenses: formatted, isLoading: false });
       } else {
         set({ lenses: DEFAULT_LENSES, isLoading: false });
@@ -199,10 +308,7 @@ export const useLensStore = create<LensState>((set, get) => ({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const formatted: LensService[] = data.map((d: any) => ({
-          ...d,
-          features: Array.isArray(d.features) ? d.features : typeof d.features === 'string' ? JSON.parse(d.features) : [],
-        }));
+        const formatted: LensService[] = data.map(formatLensItem);
         set({ activeLenses: formatted, isLoading: false });
       } else {
         set({ activeLenses: DEFAULT_LENSES.filter((l) => l.active), isLoading: false });
@@ -245,10 +351,7 @@ export const useLensStore = create<LensState>((set, get) => ({
 
       if (error) throw error;
 
-      const formatted: LensService = {
-        ...data,
-        features: Array.isArray(data.features) ? data.features : [],
-      };
+      const formatted: LensService = formatLensItem(data);
 
       const updated = [...get().lenses, formatted];
       set({ lenses: updated });

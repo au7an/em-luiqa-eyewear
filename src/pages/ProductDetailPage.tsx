@@ -9,6 +9,7 @@ import {
   Truck,
   RotateCcw,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import { useWishlistStore } from '../store/useWishlistStore';
@@ -17,6 +18,7 @@ import { Badge } from '../components/common/Badge';
 import { StatusBadge } from '../components/admin/StatusBadge';
 import { ProductCard } from '../components/catalog/ProductCard';
 import { ColorSwatchPicker } from '../components/catalog/ColorSwatchPicker';
+import { LensCustomizationDrawer } from '../components/product/LensCustomizationDrawer';
 import { ProductVariant } from '../types/database';
 
 export const ProductDetailPage: React.FC = () => {
@@ -25,9 +27,10 @@ export const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { products, loadInitialData } = useProductStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
-  const { getProductWALink, settings } = useSettingsStore();
+  const { settings } = useSettingsStore();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLensDrawerOpen, setIsLensDrawerOpen] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -117,10 +120,6 @@ export const ProductDetailPage: React.FC = () => {
   const currentSku = activeVariant?.sku || product.sku;
   const shopeeUrl =
     activeVariant?.shopee_url || product.shopee_url || settings.shopee_url || 'https://shopee.co.id';
-  const whatsappLensUrl = getProductWALink(
-    product.name,
-    activeVariant?.color_name || product.color
-  );
 
   return (
     <div className="pt-28 sm:pt-36 pb-24 px-4 sm:px-8 max-w-7xl mx-auto min-h-screen">
@@ -191,6 +190,87 @@ export const ProductDetailPage: React.FC = () => {
               ))}
             </div>
           )}
+
+          {/* Specifications Matrix (Moved under photo gallery to balance layout) */}
+          <div className="bg-[#f8f8fa] rounded-3xl p-6 sm:p-7 border border-neutral-100 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">
+              Frame & Discovery Specifications
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
+                  Silhouette Shape
+                </span>
+                <span className="text-neutral-800 font-medium">
+                  {product.frame_shape_obj?.name || product.frame_shape || 'Round Studio'}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
+                  SKU Code
+                </span>
+                <span className="text-neutral-800 font-medium">
+                  {currentSku || 'JL-OPT-STD'}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
+                  Material
+                </span>
+                <span className="text-neutral-800 font-medium">
+                  {product.material || 'Italian Cellulose Acetate'}
+                </span>
+              </div>
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
+                  Caliber / Dimensions
+                </span>
+                <span className="text-neutral-800 font-medium">
+                  {[product.lens_width, product.bridge_width, product.temple_length]
+                    .filter(Boolean)
+                    .join(' - ') || 'Universal Fit'}
+                </span>
+              </div>
+
+              {/* Suitable Face Shapes */}
+              {product.suitable_face_shapes && product.suitable_face_shapes.length > 0 && (
+                <div className="col-span-2 sm:col-span-4 pt-3 border-t border-neutral-200/50">
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1.5">
+                    Harmonious Face Shapes
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.suitable_face_shapes.map((fs) => (
+                      <span
+                        key={fs.id}
+                        className="px-2.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[11px] font-medium"
+                      >
+                        {fs.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Curated Occasions */}
+              {product.occasions && product.occasions.length > 0 && (
+                <div className="col-span-2 sm:col-span-4 pt-3 border-t border-neutral-200/50">
+                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1.5">
+                    Curated Occasions
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.occasions.map((occ) => (
+                      <span
+                        key={occ.id}
+                        className="px-2.5 py-0.5 rounded-full bg-neutral-900 text-white text-[11px] font-medium"
+                      >
+                        {occ.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right: Specifications & Purchase Actions (5 cols) */}
@@ -244,130 +324,84 @@ export const ProductDetailPage: React.FC = () => {
               {product.description || product.short_description}
             </p>
 
-            {/* Specifications Matrix */}
-            <div className="bg-neutral-50 rounded-2xl p-5 mb-8 border border-neutral-200/60">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">
-                Frame & Discovery Specifications
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
-                    Silhouette Shape
-                  </span>
-                  <span className="text-neutral-800 font-medium">
-                    {product.frame_shape_obj?.name || product.frame_shape || 'Round Studio'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
-                    SKU Code
-                  </span>
-                  <span className="text-neutral-800 font-medium">
-                    {currentSku || 'JL-OPT-STD'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
-                    Material
-                  </span>
-                  <span className="text-neutral-800 font-medium">
-                    {product.material || 'Italian Cellulose Acetate'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-neutral-400 uppercase text-[10px] block font-semibold">
-                    Caliber / Dimensions
-                  </span>
-                  <span className="text-neutral-800 font-medium">
-                    {[product.lens_width, product.bridge_width, product.temple_length]
-                      .filter(Boolean)
-                      .join(' - ') || 'Universal Fit'}
+            {/* Dual Purchase Paths: Frame Only vs Frame + Lens */}
+            <div className="space-y-4 mb-8">
+              {/* Option 1: FRAME ONLY */}
+              <div className="p-4 rounded-2xl border border-neutral-200/80 bg-neutral-50/60 hover:border-neutral-300 transition-all space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 block">
+                      Path 1: Ready to Wear
+                    </span>
+                    <h3 className="text-sm font-bold text-neutral-900 uppercase mt-0.5">
+                      Frame Only
+                    </h3>
+                  </div>
+                  <span className="text-sm font-bold text-neutral-900">
+                    {currentPrice}
                   </span>
                 </div>
 
-                {/* Suitable Face Shapes */}
-                {product.suitable_face_shapes && product.suitable_face_shapes.length > 0 && (
-                  <div className="col-span-2 pt-2 border-t border-neutral-200/50">
-                    <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1">
-                      Harmonious Face Shapes
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {product.suitable_face_shapes.map((fs) => (
-                        <span
-                          key={fs.id}
-                          className="px-2.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[11px] font-medium"
-                        >
-                          {fs.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="flex gap-2.5">
+                  <a
+                    href={shopeeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`flex-1 py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all hover:shadow-md active:scale-98 ${
+                      currentStock === 'Sold Out'
+                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed pointer-events-none'
+                        : 'bg-[#EE4D2D] hover:bg-[#e03a19] text-white shadow-sm'
+                    }`}
+                  >
+                    <ShoppingBag size={16} />
+                    <span>{currentStock === 'Sold Out' ? 'Out of Stock on Shopee' : 'Buy on Shopee'}</span>
+                  </a>
 
-                {/* Curated Occasions */}
-                {product.occasions && product.occasions.length > 0 && (
-                  <div className="col-span-2 pt-2 border-t border-neutral-200/50">
-                    <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1">
-                      Curated Occasions
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {product.occasions.map((occ) => (
-                        <span
-                          key={occ.id}
-                          className="px-2.5 py-0.5 rounded-full bg-neutral-900 text-white text-[11px] font-medium"
-                        >
-                          {occ.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  <button
+                    onClick={() => toggleWishlist(product.id)}
+                    className={`p-3.5 rounded-full border transition-colors flex items-center justify-center ${
+                      inWishlist
+                        ? 'border-rose-200 bg-rose-50 text-rose-500'
+                        : 'border-neutral-200 hover:border-black text-neutral-700 bg-white'
+                    }`}
+                    aria-label="Save to Wishlist"
+                  >
+                    <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Purchase & Consultation Flow Actions */}
-            <div className="space-y-3 mb-8">
-              <div className="flex gap-3">
-                {/* Primary Action: BUY ON SHOPEE */}
-                <a
-                  href={shopeeUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`flex-1 py-4 px-8 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all hover:shadow-xl active:scale-98 ${
-                    currentStock === 'Sold Out'
-                      ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed pointer-events-none'
-                      : 'bg-neutral-900 text-white hover:bg-neutral-800'
-                  }`}
-                >
-                  <ShoppingBag size={17} />
-                  <span>{currentStock === 'Sold Out' ? 'Out of Stock on Shopee' : 'Buy on Shopee'}</span>
-                </a>
+              {/* Option 2: FRAME + LENS */}
+              <div className="p-4 rounded-2xl border border-neutral-200/80 bg-neutral-50/60 hover:border-neutral-300 transition-all space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-800">
+                      <Sparkles size={12} className="text-emerald-700" />
+                      <span>Path 2: Tailored Optics</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-neutral-900 uppercase mt-0.5">
+                      Frame + Lens
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
+                    Atelier Custom
+                  </span>
+                </div>
 
-                {/* Wishlist Button */}
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Customize with optical prescription diopters (Single Vision, Bifocal, Progressive) or non-prescription plano (Blue Control, Photochromic, Polarized).
+                </p>
+
                 <button
-                  onClick={() => toggleWishlist(product.id)}
-                  className={`p-4 rounded-full border transition-colors flex items-center justify-center ${
-                    inWishlist
-                      ? 'border-rose-200 bg-rose-50 text-rose-500'
-                      : 'border-neutral-200 hover:border-black text-neutral-700'
-                  }`}
-                  aria-label="Save to Wishlist"
+                  type="button"
+                  onClick={() => setIsLensDrawerOpen(true)}
+                  className="w-full py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm hover:shadow-md active:scale-98"
                 >
-                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                  <Layers size={16} />
+                  <span>Customize with Lens</span>
+                  <ArrowUpRight size={15} />
                 </button>
               </div>
-
-              {/* Secondary Action: CUSTOMIZE WITH LENS */}
-              <a
-                href={whatsappLensUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-colors shadow-sm"
-              >
-                <Layers size={16} />
-                <span>Customize with Lens via WhatsApp ({activeVariant?.color_name || 'Selected Color'})</span>
-                <ArrowUpRight size={15} />
-              </a>
             </div>
 
             {/* Assurance Guarantees */}
@@ -408,6 +442,14 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* Guided Lens Customization Slide-Over Drawer */}
+      <LensCustomizationDrawer
+        isOpen={isLensDrawerOpen}
+        onClose={() => setIsLensDrawerOpen(false)}
+        product={product}
+        variant={activeVariant}
+      />
     </div>
   );
 };
