@@ -20,6 +20,7 @@ import { ProductCard } from '../components/catalog/ProductCard';
 import { ColorSwatchPicker } from '../components/catalog/ColorSwatchPicker';
 import { LensCustomizationDrawer } from '../components/product/LensCustomizationDrawer';
 import { ProductVariant } from '../types/database';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export const ProductDetailPage: React.FC = () => {
   const { products, loadInitialData } = useProductStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const { settings } = useSettingsStore();
+  const { t, language } = useLanguageStore();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLensDrawerOpen, setIsLensDrawerOpen] = useState(false);
@@ -77,15 +79,19 @@ export const ProductDetailPage: React.FC = () => {
   if (!product) {
     return (
       <div className="pt-36 pb-24 px-4 text-center max-w-lg mx-auto min-h-[60vh] flex flex-col items-center justify-center">
-        <h2 className="editorial-title text-3xl mb-4">Frame Not Found</h2>
+        <h2 className="editorial-title text-3xl mb-4">
+          {language === 'id' ? 'Siluet Tidak Ditemukan' : 'Frame Not Found'}
+        </h2>
         <p className="text-sm text-neutral-500 mb-6">
-          The requested eyewear silhouette could not be found or has been archived.
+          {language === 'id'
+            ? 'Siluet kacamata yang dicari tidak ditemukan atau telah diarsipkan.'
+            : 'The requested eyewear silhouette could not be found or has been archived.'}
         </p>
         <Link
           to="/catalog"
           className="px-6 py-3 bg-neutral-900 text-white rounded-full text-xs uppercase tracking-wider font-semibold hover:bg-neutral-800 transition-colors"
         >
-          Return to Catalog
+          {language === 'id' ? 'Kembali ke Katalog' : 'Return to Catalog'}
         </Link>
       </div>
     );
@@ -129,12 +135,12 @@ export const ProductDetailPage: React.FC = () => {
           onClick={() => navigate(-1)}
           className="flex items-center gap-1 hover:text-black transition-colors"
         >
-          <ArrowLeft size={14} /> Back
+          <ArrowLeft size={14} /> {t('pdp.back', 'Back')}
         </button>
         <span>/</span>
-        <Link to="/" className="hover:text-black">Home</Link>
+        <Link to="/" className="hover:text-black">{language === 'id' ? 'Beranda' : 'Home'}</Link>
         <span>/</span>
-        <Link to="/catalog" className="hover:text-black">Catalog</Link>
+        <Link to="/catalog" className="hover:text-black">{t('navbar.catalog', 'Catalog')}</Link>
         <span>/</span>
         <span className="text-neutral-900 font-bold">{product.name}</span>
       </div>
@@ -191,15 +197,15 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Specifications Matrix (Moved under photo gallery to balance layout) */}
+          {/* Specifications Matrix */}
           <div className="bg-[#f8f8fa] rounded-3xl p-6 sm:p-7 border border-neutral-100 shadow-xs">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">
-              Frame & Discovery Specifications
+              {t('pdp.specs_title', 'Frame & Discovery Specifications')}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div>
                 <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
-                  Silhouette Shape
+                  {t('pdp.shape', 'Silhouette Shape')}
                 </span>
                 <span className="text-neutral-800 font-medium">
                   {product.frame_shape_obj?.name || product.frame_shape || 'Round Studio'}
@@ -207,7 +213,7 @@ export const ProductDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
-                  SKU Code
+                  {t('pdp.sku', 'SKU Code')}
                 </span>
                 <span className="text-neutral-800 font-medium">
                   {currentSku || 'JL-OPT-STD'}
@@ -215,7 +221,7 @@ export const ProductDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
-                  Material
+                  {t('pdp.material', 'Material')}
                 </span>
                 <span className="text-neutral-800 font-medium">
                   {product.material || 'Italian Cellulose Acetate'}
@@ -223,12 +229,12 @@ export const ProductDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-0.5">
-                  Caliber / Dimensions
+                  {t('pdp.caliber', 'Caliber / Dimensions')}
                 </span>
                 <span className="text-neutral-800 font-medium">
                   {[product.lens_width, product.bridge_width, product.temple_length]
                     .filter(Boolean)
-                    .join(' - ') || 'Universal Fit'}
+                    .join(' - ') || t('pdp.universal_fit', 'Universal Fit')}
                 </span>
               </div>
 
@@ -236,7 +242,7 @@ export const ProductDetailPage: React.FC = () => {
               {product.suitable_face_shapes && product.suitable_face_shapes.length > 0 && (
                 <div className="col-span-2 sm:col-span-4 pt-3 border-t border-neutral-200/50">
                   <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1.5">
-                    Harmonious Face Shapes
+                    {t('pdp.face_shapes', 'Harmonious Face Shapes')}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {product.suitable_face_shapes.map((fs) => (
@@ -255,7 +261,7 @@ export const ProductDetailPage: React.FC = () => {
               {product.occasions && product.occasions.length > 0 && (
                 <div className="col-span-2 sm:col-span-4 pt-3 border-t border-neutral-200/50">
                   <span className="text-neutral-400 uppercase text-[10px] block font-semibold mb-1.5">
-                    Curated Occasions
+                    {t('pdp.occasions', 'Curated Occasions')}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {product.occasions.map((occ) => (
@@ -277,7 +283,7 @@ export const ProductDetailPage: React.FC = () => {
         <div className="lg:col-span-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-neutral-400 font-bold mb-2">
-              <span>{product.edition || '2026 Studio Collection'}</span>
+              <span>{product.edition || t('pdp.edition', '2026 Studio Collection')}</span>
               <span className="text-neutral-900">{product.category}</span>
             </div>
 
@@ -305,7 +311,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="mb-6 p-4 rounded-2xl bg-neutral-50/80 border border-neutral-200/70">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                    Selected Colorway
+                    {t('pdp.selected_colorway', 'Selected Colorway')}
                   </span>
                   <span className="text-xs font-semibold text-neutral-900">
                     {activeVariant?.color_name || 'Standard'}
@@ -331,10 +337,10 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 block">
-                      Path 1: Ready to Wear
+                      {t('pdp.option1_title', 'Path 1: Ready to Wear')}
                     </span>
                     <h3 className="text-sm font-bold text-neutral-900 uppercase mt-0.5">
-                      Frame Only
+                      {t('pdp.option1_name', 'Frame Only')}
                     </h3>
                   </div>
                   <span className="text-sm font-bold text-neutral-900">
@@ -354,7 +360,7 @@ export const ProductDetailPage: React.FC = () => {
                     }`}
                   >
                     <ShoppingBag size={16} />
-                    <span>{currentStock === 'Sold Out' ? 'Out of Stock on Shopee' : 'Buy on Shopee'}</span>
+                    <span>{currentStock === 'Sold Out' ? t('pdp.out_of_stock_shopee', 'Out of Stock on Shopee') : t('pdp.buy_shopee', 'Buy on Shopee')}</span>
                   </a>
 
                   <button
@@ -377,19 +383,19 @@ export const ProductDetailPage: React.FC = () => {
                   <div>
                     <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-800">
                       <Sparkles size={12} className="text-emerald-700" />
-                      <span>Path 2: Tailored Optics</span>
+                      <span>{t('pdp.option2_title', 'Path 2: Custom Optical Lens')}</span>
                     </div>
                     <h3 className="text-sm font-bold text-neutral-900 uppercase mt-0.5">
-                      Frame + Lens
+                      {t('pdp.option2_name', 'Frame + Custom Lens')}
                     </h3>
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
-                    Atelier Custom
+                    {t('pdp.option2_badge', 'Atelier Custom')}
                   </span>
                 </div>
 
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Customize with optical prescription diopters (Single Vision, Bifocal, Progressive) or non-prescription plano (Blue Control, Photochromic, Polarized).
+                  {t('pdp.option2_desc')}
                 </p>
 
                 <button
@@ -398,7 +404,7 @@ export const ProductDetailPage: React.FC = () => {
                   className="w-full py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm hover:shadow-md active:scale-98"
                 >
                   <Layers size={16} />
-                  <span>Customize with Lens</span>
+                  <span>{t('pdp.customize_lens', 'Customize with Lens')}</span>
                   <ArrowUpRight size={15} />
                 </button>
               </div>
@@ -408,15 +414,15 @@ export const ProductDetailPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-2 pt-6 border-t border-neutral-100 text-center text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">
               <div className="flex flex-col items-center gap-1.5">
                 <ShieldCheck size={18} className="text-neutral-700" />
-                <span>Authentic Acetate</span>
+                <span>{t('pdp.authentic_acetate', 'Authentic Acetate')}</span>
               </div>
               <div className="flex flex-col items-center gap-1.5">
                 <Truck size={18} className="text-neutral-700" />
-                <span>Insured Shipping</span>
+                <span>{t('pdp.insured_shipping', 'Insured Shipping')}</span>
               </div>
               <div className="flex flex-col items-center gap-1.5">
                 <RotateCcw size={18} className="text-neutral-700" />
-                <span>7-Day Fit Guarantee</span>
+                <span>{t('pdp.fit_guarantee', '7-Day Fit Guarantee')}</span>
               </div>
             </div>
           </div>
@@ -428,10 +434,10 @@ export const ProductDetailPage: React.FC = () => {
         <section className="border-t border-neutral-100 pt-16">
           <div className="text-center mb-10">
             <span className="text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 block mb-1">
-              Curated Complements
+              {t('pdp.similar_subtitle', 'Curated Complements')}
             </span>
             <h2 className="editorial-title text-2xl sm:text-3xl uppercase">
-              Similar Silhouettes
+              {t('pdp.similar_title', 'Similar Silhouettes')}
             </h2>
           </div>
 

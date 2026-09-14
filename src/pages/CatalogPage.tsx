@@ -6,6 +6,7 @@ import { useDiscoveryStore } from '../store/useDiscoveryStore';
 import { ProductCard } from '../components/catalog/ProductCard';
 import { FilterPopover } from '../components/catalog/FilterPopover';
 import { ProductCategory } from '../types/database';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 export const CatalogPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,6 +29,7 @@ export const CatalogPage: React.FC = () => {
   } = useProductStore();
 
   const { frameShapes, faceShapes, occasions, loadTaxonomy } = useDiscoveryStore();
+  const { t, language } = useLanguageStore();
 
   useEffect(() => {
     loadInitialData();
@@ -212,26 +214,26 @@ export const CatalogPage: React.FC = () => {
       {/* Page Header */}
       <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
         <span className="text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 block mb-2">
-          The 2026 Collection
+          {language === 'id' ? 'Koleksi Studio 2026' : 'The 2026 Collection'}
         </span>
         <h1 className="editorial-title text-4xl sm:text-5xl lg:text-6xl text-neutral-900 uppercase mb-4">
-          All Eyewear
+          {t('catalog.title', 'All Eyewear')}
         </h1>
         <p className="text-sm text-neutral-500 font-light leading-relaxed">
-          Architectural silhouettes meticulously crafted from cured Italian acetate and titanium alloys. Filter by silhouette shape, facial contour harmony, and curated occasion.
+          {t('catalog.subtitle', 'Architectural silhouettes meticulously crafted from cured Italian acetate and titanium alloys. Filter by silhouette shape, facial contour harmony, and curated occasion.')}
         </p>
       </div>
 
-      {/* Primary Filter & Controls Bar - elevated z-index to allow popovers to float cleanly above products */}
+      {/* Primary Filter & Controls Bar */}
       <div className="relative z-30 bg-neutral-50/90 backdrop-blur-md rounded-2xl p-3 sm:p-4 mb-4 border border-neutral-200/70 shadow-xs flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           
           {/* Category Pill Tabs */}
           <div className="flex items-center gap-1.5 p-1 bg-white rounded-full border border-neutral-200/80 shadow-2xs overflow-x-auto">
             {[
-              { id: 'all', label: 'All Silhouettes' },
-              { id: 'sunglasses', label: 'Sunglasses' },
-              { id: 'optical', label: 'Optical Frames' },
+              { id: 'all', label: language === 'id' ? 'Semua Siluet' : 'All Silhouettes' },
+              { id: 'sunglasses', label: language === 'id' ? 'Kacamata Hitam' : 'Sunglasses' },
+              { id: 'optical', label: language === 'id' ? 'Kacamata Optik' : 'Optical Frames' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -259,7 +261,7 @@ export const CatalogPage: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search models & colors..."
+                placeholder={t('catalog.search_placeholder', 'Search models & colors...')}
                 className="w-full bg-white pl-9 pr-8 py-2 rounded-full border border-neutral-200 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-black transition-colors"
               />
               {searchQuery && (
@@ -284,15 +286,15 @@ export const CatalogPage: React.FC = () => {
                 className="bg-white px-3 sm:px-4 py-2 rounded-full border border-neutral-200 text-xs font-semibold uppercase tracking-wider text-neutral-700 focus:outline-none focus:border-black cursor-pointer shadow-2xs hover:border-neutral-400 transition-colors"
                 aria-label="Sort products"
               >
-                <option value="featured">Featured</option>
-                <option value="relevant">Most relevant</option>
-                <option value="best-selling">Best selling</option>
-                <option value="title-asc">Alphabetically, A-Z</option>
-                <option value="title-desc">Alphabetically, Z-A</option>
-                <option value="price-asc">Price, low to high</option>
-                <option value="price-desc">Price, high to low</option>
-                <option value="date-asc">Date, old to new</option>
-                <option value="date-desc">Date, new to old</option>
+                <option value="featured">{t('catalog.sort_featured', 'Featured')}</option>
+                <option value="relevant">{language === 'id' ? 'Paling Relevan' : 'Most relevant'}</option>
+                <option value="best-selling">{language === 'id' ? 'Terlaris' : 'Best selling'}</option>
+                <option value="title-asc">{t('catalog.sort_name_az', 'Alphabetically, A-Z')}</option>
+                <option value="title-desc">{t('catalog.sort_name_za', 'Alphabetically, Z-A')}</option>
+                <option value="price-asc">{t('catalog.sort_price_low', 'Price, low to high')}</option>
+                <option value="price-desc">{t('catalog.sort_price_high', 'Price, high to low')}</option>
+                <option value="date-asc">{language === 'id' ? 'Tanggal: Lama ke Baru' : 'Date, old to new'}</option>
+                <option value="date-desc">{t('catalog.sort_date_new', 'Date, new to old')}</option>
               </select>
             </div>
           </div>
@@ -301,11 +303,11 @@ export const CatalogPage: React.FC = () => {
         {/* Discovery Attribute Popovers Row */}
         <div className="pt-2 border-t border-neutral-200/60 flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mr-1 hidden sm:inline">
-            Refine By:
+            {t('catalog.refine_by', 'Refine By:')}
           </span>
 
           <FilterPopover
-            label="Frame Shape"
+            label={t('catalog.filter_shape', 'Frame Shape')}
             options={frameShapes}
             selectedIds={selectedFrameShapes}
             onToggle={toggleFrameShape}
@@ -313,7 +315,7 @@ export const CatalogPage: React.FC = () => {
           />
 
           <FilterPopover
-            label="Face Shape"
+            label={t('catalog.filter_face_shape', 'Face Shape')}
             options={faceShapes}
             selectedIds={selectedFaceShapes}
             onToggle={toggleFaceShape}
@@ -321,7 +323,7 @@ export const CatalogPage: React.FC = () => {
           />
 
           <FilterPopover
-            label="Occasion"
+            label={t('catalog.filter_occasion', 'Occasion')}
             options={occasions}
             selectedIds={selectedOccasions}
             onToggle={toggleOccasion}
@@ -336,7 +338,7 @@ export const CatalogPage: React.FC = () => {
               }}
               className="ml-auto text-xs text-neutral-500 hover:text-black font-bold uppercase tracking-wider underline underline-offset-2 px-2"
             >
-              RESET ALL
+              {language === 'id' ? 'RESET SEMUA' : 'RESET ALL'}
             </button>
           )}
         </div>
@@ -346,7 +348,7 @@ export const CatalogPage: React.FC = () => {
       {activeChips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-6 px-1">
           <span className="text-xs text-neutral-400 font-semibold uppercase tracking-wider text-[10px]">
-            ACTIVE FILTERS:
+            {language === 'id' ? 'FILTER AKTIF:' : 'ACTIVE FILTERS:'}
           </span>
           {activeChips.map((chip) => (
             <span
@@ -367,7 +369,7 @@ export const CatalogPage: React.FC = () => {
             onClick={resetDiscoveryFilters}
             className="text-xs text-neutral-500 hover:text-black font-bold uppercase tracking-wider ml-2 underline"
           >
-            CLEAR ALL
+            {language === 'id' ? 'HAPUS SEMUA' : 'CLEAR ALL'}
           </button>
         </div>
       )}
@@ -375,11 +377,15 @@ export const CatalogPage: React.FC = () => {
       {/* Active Count Bar */}
       <div className="flex items-center justify-between text-xs text-neutral-500 font-medium mb-6 px-1">
         <div>
-          Showing <strong className="text-neutral-900">{filteredProducts.length}</strong> styles
+          {language === 'id' ? (
+            <>Menampilkan <strong className="text-neutral-900">{filteredProducts.length}</strong> siluet</>
+          ) : (
+            <>Showing <strong className="text-neutral-900">{filteredProducts.length}</strong> styles</>
+          )}
         </div>
       </div>
 
-      {/* Products Grid - High-density 4-column luxury layout with tight ~16px gap */}
+      {/* Products Grid */}
       {filteredProducts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {filteredProducts.map((product) => (
@@ -389,10 +395,12 @@ export const CatalogPage: React.FC = () => {
       ) : (
         <div className="text-center py-24 bg-neutral-50 rounded-3xl border border-neutral-200/60 p-8">
           <p className="text-base font-bold text-neutral-800 mb-2">
-            No frames matched your criteria
+            {t('catalog.no_products', 'No frames matched your criteria')}
           </p>
           <p className="text-xs text-neutral-500 max-w-sm mx-auto mb-6">
-            Try adjusting your discovery filters, switching face shapes, or clearing search keywords.
+            {language === 'id'
+              ? 'Coba sesuaikan filter pencarian Anda atau hapus kata kunci yang dimasukkan.'
+              : 'Try adjusting your discovery filters, switching face shapes, or clearing search keywords.'}
           </p>
           <button
             onClick={() => {
@@ -401,7 +409,7 @@ export const CatalogPage: React.FC = () => {
             }}
             className="px-6 py-2.5 rounded-full bg-neutral-900 text-white text-xs uppercase tracking-wider font-semibold hover:bg-neutral-800 transition-colors"
           >
-            View All Silhouettes
+            {t('catalog.clear_filters', 'View All Silhouettes')}
           </button>
         </div>
       )}

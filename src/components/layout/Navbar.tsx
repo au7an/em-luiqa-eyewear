@@ -4,11 +4,14 @@ import { Search, Menu, X, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
 import { useWishlistStore } from '../../store/useWishlistStore';
+import { useLanguageStore } from '../../store/useLanguageStore';
+import { useHomepageLayoutStore } from '../../store/useHomepageLayoutStore';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const { layout } = useHomepageLayoutStore();
 
   const { 
     openSearch, 
@@ -18,6 +21,7 @@ export const Navbar: React.FC = () => {
   } = useUIStore();
 
   const { openWishlist, wishlistProductIds } = useWishlistStore();
+  const { language, setLanguage, t } = useLanguageStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,11 +41,26 @@ export const Navbar: React.FC = () => {
   }, [location.pathname, closeMobileMenu]);
 
   const navLinks = [
-    { label: 'Sunglasses', path: '/catalog?category=sunglasses' },
-    { label: 'Glasses', path: '/catalog?category=optical' },
-    { label: 'Lenses', path: '/lenses' },
-    { label: 'Lookbook', path: '/lookbook' },
-    { label: 'Contact', path: '/contact' },
+    { 
+      label: language === 'id' ? 'Kacamata Hitam' : 'Sunglasses', 
+      path: '/catalog?category=sunglasses' 
+    },
+    { 
+      label: language === 'id' ? 'Kacamata Optik' : 'Glasses', 
+      path: '/catalog?category=optical' 
+    },
+    { 
+      label: t('navbar.lenses', 'Lenses'), 
+      path: '/lenses' 
+    },
+    { 
+      label: t('navbar.lookbook', 'Lookbook'), 
+      path: '/lookbook' 
+    },
+    { 
+      label: t('navbar.contact', 'Contact'), 
+      path: '/contact' 
+    },
   ];
 
   const isActive = (path: string) => {
@@ -52,15 +71,15 @@ export const Navbar: React.FC = () => {
   };
 
   // Glass blur state applies when scrolled OR on subpages with light backgrounds
-  const isGlass = isScrolled || !isHomePage;
+  const isGlass = isScrolled || !isHomePage || !layout.hero_enabled;
 
   return (
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-40 w-full transition-all duration-300 ${
           isGlass
-            ? 'bg-white/80 backdrop-blur-xl border-b border-black/[0.04] shadow-[0_4px_20px_rgba(0,0,0,0.02)] py-3.5 sm:py-4'
-            : 'bg-transparent py-5 sm:py-6'
+            ? 'bg-white/85 backdrop-blur-xl border-b border-black/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.03)] py-3.5 sm:py-4'
+            : 'bg-transparent py-5 sm:py-6 border-b border-transparent'
         }`}
       >
         <div className="w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-3 items-center">
@@ -76,7 +95,7 @@ export const Navbar: React.FC = () => {
                       ? 'text-black font-semibold'
                       : 'text-white font-semibold drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]'
                     : isGlass
-                    ? 'text-neutral-700 hover:text-black hover:opacity-75'
+                    ? 'text-neutral-700 hover:text-black'
                     : 'text-white/90 hover:text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]'
                 }`}
               >
@@ -89,7 +108,7 @@ export const Navbar: React.FC = () => {
           <div className="flex md:hidden items-center justify-self-start">
             <button
               onClick={openMobileMenu}
-              className={`p-1.5 -ml-1.5 rounded-full transition-colors focus:outline-none ${
+              className={`p-1.5 -ml-1.5 rounded-full transition-colors focus:outline-none cursor-pointer ${
                 isGlass
                   ? 'text-neutral-800 hover:text-black'
                   : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]'
@@ -127,32 +146,73 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Right Actions: Wishlist & Search */}
-          <div className="justify-self-end flex items-center gap-2">
+          {/* Right Actions: Language Switcher, Wishlist & Search */}
+          <div className="justify-self-end flex items-center gap-1.5 sm:gap-2">
+            {/* Discreet Luxury Language Switcher */}
+            <div
+              className={`inline-flex items-center rounded-full p-0.5 text-[11px] font-mono font-medium border transition-colors ${
+                isGlass
+                  ? 'bg-neutral-100/90 border-neutral-200/90 text-neutral-600'
+                  : 'bg-black/35 border-white/20 text-white/85 backdrop-blur-md'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setLanguage('id')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all text-[10px] sm:text-[11px] cursor-pointer ${
+                  language === 'id'
+                    ? 'bg-white text-neutral-950 font-bold shadow-xs'
+                    : isGlass
+                    ? 'text-neutral-500 hover:text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Ganti ke Bahasa Indonesia"
+              >
+                ID
+              </button>
+              <span className="opacity-25 px-0.5 text-[9px]">/</span>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all text-[10px] sm:text-[11px] cursor-pointer ${
+                  language === 'en'
+                    ? 'bg-white text-neutral-950 font-bold shadow-xs'
+                    : isGlass
+                    ? 'text-neutral-500 hover:text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Switch to English"
+              >
+                EN
+              </button>
+            </div>
+
+            {/* Search Trigger */}
             <button
               onClick={openSearch}
-              className={`flex items-center gap-1.5 py-1 px-2 rounded-full transition-all focus:outline-none ${
+              className={`flex items-center gap-1.5 py-1 px-2 rounded-full transition-all focus:outline-none cursor-pointer ${
                 isGlass
-                  ? 'text-neutral-700 hover:text-black hover:opacity-75'
+                  ? 'text-neutral-700 hover:text-black'
                   : 'text-white/90 hover:text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]'
               }`}
-              aria-label="Search Collection"
+              aria-label={t('navbar.search_tooltip', 'Search Collection')}
             >
               <Search size={15} strokeWidth={2} />
               <span className="hidden sm:inline text-[13px] md:text-[13.5px] tracking-[0.02em] font-medium">
-                Search
+                {language === 'id' ? 'Cari' : 'Search'}
               </span>
             </button>
 
+            {/* Wishlist Trigger */}
             {wishlistProductIds.length > 0 && (
               <button
                 onClick={openWishlist}
-                className={`relative p-1.5 rounded-full transition-all focus:outline-none ${
+                className={`relative p-1.5 rounded-full transition-all focus:outline-none cursor-pointer ${
                   isGlass
                     ? 'text-neutral-700 hover:text-black'
                     : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]'
                 }`}
-                aria-label="Open Wishlist"
+                aria-label={t('navbar.wishlist_tooltip', 'Open Wishlist')}
               >
                 <Heart size={16} fill="currentColor" className="text-rose-500" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
@@ -209,7 +269,7 @@ export const Navbar: React.FC = () => {
                       location.pathname === '/' ? 'text-black font-semibold' : 'text-neutral-600 hover:text-black'
                     }`}
                   >
-                    Home
+                    {language === 'id' ? 'Beranda' : 'Home'}
                   </Link>
                   {navLinks.map((link) => (
                     <Link
@@ -230,12 +290,39 @@ export const Navbar: React.FC = () => {
                       location.pathname === '/catalog' && !location.search ? 'text-black font-semibold' : 'text-neutral-600 hover:text-black'
                     }`}
                   >
-                    All Collections
+                    {language === 'id' ? 'Semua Koleksi' : 'All Collections'}
                   </Link>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-neutral-100 space-y-3">
+              <div className="pt-6 border-t border-neutral-100 space-y-4">
+                {/* Mobile Language Switcher */}
+                <div className="flex items-center justify-between py-2 px-3 bg-neutral-100/90 rounded-xl">
+                  <span className="text-xs font-medium text-neutral-600">
+                    {language === 'id' ? 'Bahasa / Language' : 'Language'}
+                  </span>
+                  <div className="inline-flex items-center rounded-lg p-0.5 bg-neutral-200 text-[11px] font-mono font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('id')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${
+                        language === 'id' ? 'bg-white text-black font-bold shadow-xs' : 'text-neutral-500'
+                      }`}
+                    >
+                      ID
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${
+                        language === 'en' ? 'bg-white text-black font-bold shadow-xs' : 'text-neutral-500'
+                      }`}
+                    >
+                      EN
+                    </button>
+                  </div>
+                </div>
+
                 <Link
                   to="/admin"
                   onClick={closeMobileMenu}

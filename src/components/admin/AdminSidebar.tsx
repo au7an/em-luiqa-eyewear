@@ -12,9 +12,11 @@ import {
   LogOut,
   ExternalLink,
   X,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInquiryStore } from '../../store/useInquiryStore';
+import { useLanguageStore } from '../../store/useLanguageStore';
 
 interface AdminSidebarProps {
   onCloseMobile?: () => void;
@@ -23,6 +25,7 @@ interface AdminSidebarProps {
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => {
   const { user, signOut } = useAuthStore();
   const getNewCount = useInquiryStore((state) => state.getNewCount);
+  const { t, language, setLanguage } = useLanguageStore();
   const navigate = useNavigate();
   const newInquiriesCount = getNewCount();
 
@@ -32,19 +35,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
   };
 
   const navItems = [
-    { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-    { label: 'Products', path: '/admin/products', icon: Glasses },
-    { label: 'Campaigns', path: '/admin/campaigns', icon: Sparkles },
-    { label: 'Lens Services', path: '/admin/lenses', icon: Layers },
-    { label: 'Promotions', path: '/admin/promotions', icon: Tag },
-    { label: 'Lookbook', path: '/admin/lookbook', icon: BookOpen },
+    { label: t('admin.dashboard', 'Dashboard'), path: '/admin', icon: LayoutDashboard, exact: true },
+    { label: t('admin.homepage_layout', 'Homepage Layout'), path: '/admin/homepage', icon: LayoutTemplate },
+    { label: t('admin.products', 'Products'), path: '/admin/products', icon: Glasses },
+    { label: t('admin.campaigns', 'Campaigns'), path: '/admin/campaigns', icon: Sparkles },
+    { label: t('admin.lenses', 'Lens Services'), path: '/admin/lenses', icon: Layers },
+    { label: t('admin.promotions', 'Promotions'), path: '/admin/promotions', icon: Tag },
+    { label: t('admin.lookbook', 'Lookbook'), path: '/admin/lookbook', icon: BookOpen },
     {
-      label: 'Inquiries',
+      label: t('admin.inquiries', 'Inquiries'),
       path: '/admin/inquiries',
       icon: MessageSquare,
       badge: newInquiriesCount > 0 ? newInquiriesCount : undefined,
     },
-    { label: 'Settings', path: '/admin/settings', icon: Settings },
+    { label: t('admin.settings', 'Settings'), path: '/admin/settings', icon: Settings },
   ];
 
   return (
@@ -84,8 +88,32 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
 
       {/* Navigation List */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-          Management
+        <div className="flex items-center justify-between px-3 pb-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+            {language === 'id' ? 'Manajemen Studio' : 'Management'}
+          </span>
+
+          {/* Admin Language Pill */}
+          <div className="inline-flex items-center rounded-md p-0.5 bg-neutral-800 text-[10px] font-mono">
+            <button
+              type="button"
+              onClick={() => setLanguage('id')}
+              className={`px-1.5 py-0.5 rounded transition-all ${
+                language === 'id' ? 'bg-neutral-700 text-white font-bold' : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              ID
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`px-1.5 py-0.5 rounded transition-all ${
+                language === 'en' ? 'bg-neutral-700 text-white font-bold' : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              EN
+            </button>
+          </div>
         </div>
 
         {navItems.map((item) => {
@@ -128,7 +156,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
           rel="noreferrer"
           className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-400 hover:text-white hover:bg-neutral-800/60 transition-colors"
         >
-          <span className="text-[11px] font-medium">View Storefront</span>
+          <span className="text-[11px] font-medium">
+            {language === 'id' ? 'Lihat Website Toko' : 'View Storefront'}
+          </span>
           <ExternalLink size={13} />
         </Link>
 
@@ -136,7 +166,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
         <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between px-2">
           <div className="overflow-hidden">
             <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold block">
-              Signed in as
+              {language === 'id' ? 'Masuk sebagai' : 'Signed in as'}
             </span>
             <span className="text-xs text-neutral-200 truncate block font-medium max-w-[140px]">
               {user?.email || 'admin@jemluiqa.com'}

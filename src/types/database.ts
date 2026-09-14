@@ -277,3 +277,25 @@ export interface SiteSettings {
   seo_default_description?: string;
   social_share_image?: string;
 }
+
+export type HomeSectionId =
+  | 'hero'
+  | 'promo_banner'
+  | 'collection_grid'
+  | 'featured_products'
+  | 'lens_showcase'
+  | 'editorial_story';
+
+export interface HomeSectionConfig {
+  id: HomeSectionId;
+  name: string;
+  description: string;
+  badge?: string;
+  enabled: boolean;
+}
+
+export interface HomepageLayoutSettings {
+  hero_enabled: boolean;
+  sections: HomeSectionConfig[];
+}
+

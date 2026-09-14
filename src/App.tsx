@@ -8,6 +8,7 @@ import { SearchModal } from './components/common/SearchModal';
 import { QuickviewModal } from './components/common/QuickviewModal';
 import { WishlistDrawer } from './components/common/WishlistDrawer';
 import { LightboxModal } from './components/lookbook/LightboxModal';
+import { LanguageGatewayModal } from './components/common/LanguageGatewayModal';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
@@ -34,6 +35,7 @@ import { AdminLookbookPage } from './pages/admin/AdminLookbookPage';
 import { AdminLookbookEditorPage } from './pages/admin/AdminLookbookEditorPage';
 import { AdminInquiriesPage } from './pages/admin/AdminInquiriesPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminHomepageLayoutPage } from './pages/admin/AdminHomepageLayoutPage';
 
 // Stores
 import { useProductStore } from './store/useProductStore';
@@ -77,6 +79,7 @@ export function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <LanguageGatewayModal />
       <Routes>
         {/* Public Storefront Routes */}
         <Route element={<PublicLayout />}>
@@ -101,6 +104,7 @@ export function App() {
           }
         >
           <Route index element={<AdminDashboardPage />} />
+          <Route path="homepage" element={<AdminHomepageLayoutPage />} />
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductEditorPage />} />
           <Route path="products/:id" element={<AdminProductEditorPage />} />

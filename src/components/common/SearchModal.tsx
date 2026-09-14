@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, ArrowRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
 import { useProductStore } from '../../store/useProductStore';
-import { Badge } from './Badge';
 
 export const SearchModal: React.FC = () => {
-  const { isSearchOpen, closeSearch, openQuickview } = useUIStore();
+  const { isSearchOpen, closeSearch } = useUIStore();
   const products = useProductStore((state) => state.products);
   const [searchTerm, setSearchTerm] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +27,17 @@ export const SearchModal: React.FC = () => {
     };
   }, [isSearchOpen]);
 
+  // ESC key listener to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSearchOpen) {
+        closeSearch();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen, closeSearch]);
+
   const filteredProducts =
     searchTerm.trim() === ''
       ? []
@@ -44,6 +54,12 @@ export const SearchModal: React.FC = () => {
           );
         });
 
+  // Top 4 popular / featured products
+  const popularProducts = products
+    .filter((p) => p.published)
+    .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    .slice(0, 4);
+
   const handleProductSelect = (productId: string) => {
     closeSearch();
     navigate(`/product/${productId}`);
@@ -52,175 +68,180 @@ export const SearchModal: React.FC = () => {
   return (
     <AnimatePresence>
       {isSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop Blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
             onClick={closeSearch}
-            className="fixed inset-0 bg-black/50 backdrop-blur-md"
+            className="fixed inset-0 bg-black/45 backdrop-blur-xs z-40"
           />
 
-          {/* Dialog Container */}
+          {/* Full-Width Top Slide-Down Drawer */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-modal overflow-hidden border border-neutral-100 z-10"
+            initial={{ y: '-100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '-100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+            className="fixed top-0 left-0 right-0 z-50 bg-white shadow-2xl border-b border-neutral-200 max-h-[90vh] overflow-y-auto"
           >
-            {/* Search Input Bar */}
-            <div className="p-4 sm:p-5 border-b border-neutral-100 flex items-center gap-3">
-              <Search size={22} className="text-neutral-400 shrink-0" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search eyewear frames, editions, specs..."
-                className="w-full bg-transparent text-base sm:text-lg text-neutral-900 placeholder-neutral-400 focus:outline-none"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="p-1 text-neutral-400 hover:text-black"
-                >
-                  <X size={18} />
-                </button>
-              )}
-              <button
-                onClick={closeSearch}
-                className="text-xs uppercase tracking-wider font-semibold text-neutral-500 hover:text-black px-2 py-1"
-              >
-                ESC
-              </button>
-            </div>
-
-            {/* Live Search Results */}
-            <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-6">
-              {searchTerm.trim() === '' ? (
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">
-                    Popular Collections
-                  </div>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {['Sunglasses', 'Optical', 'Cervula 01', 'Anak Jujur', 'Amber Shades', 'Titanium'].map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => setSearchTerm(tag)}
-                        className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-black hover:text-white text-xs font-medium text-neutral-700 transition-colors"
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">
-                    Featured Highlights
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {products.slice(0, 2).map((p) => {
-                      const img =
-                        p.images?.find((i) => i.image_type === 'Primary')?.image_url ||
-                        p.images?.[0]?.image_url ||
-                        '/assets/images/cervula.jpg';
-
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => handleProductSelect(p.id)}
-                          className="flex items-center gap-3 p-2 rounded-xl hover:bg-neutral-50 cursor-pointer transition-colors border border-neutral-100"
-                        >
-                          <img
-                            src={img}
-                            alt={p.name}
-                            className="w-14 h-14 object-contain rounded-lg bg-neutral-100 p-1"
-                          />
-                          <div>
-                            <div className="text-xs font-bold text-neutral-900">{p.name}</div>
-                            <div className="text-[11px] text-neutral-500">{p.price}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            <div className="w-full max-w-6xl mx-auto px-4 sm:px-8 pt-6 sm:pt-8 pb-10 sm:pb-12">
+              {/* Search Bar Row: Large Gray Input + Clean Minimalist X Close */}
+              <div className="flex items-center gap-3 sm:gap-6 mb-8">
+                {/* Large Gray Input Bar */}
+                <div className="flex-1 flex items-center bg-[#f4f4f5] px-4 sm:px-6 py-3.5 sm:py-4.5 gap-3 sm:gap-4 transition-colors focus-within:bg-[#ebebee]">
+                  <Search className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-500 shrink-0" strokeWidth={1.8} />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="TYPE TO SEARCH"
+                    className="w-full bg-transparent font-heading font-medium tracking-[0.14em] uppercase text-sm sm:text-base md:text-lg text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="p-1 text-neutral-400 hover:text-black transition-colors cursor-pointer"
+                      aria-label="Clear input"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
-              ) : filteredProducts.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-2">
-                    Found {filteredProducts.length} Results
-                  </div>
-                  {filteredProducts.map((product) => {
-                    const img =
-                      product.images?.find((i) => i.image_type === 'Primary')?.image_url ||
-                      product.images?.[0]?.image_url ||
-                      '/assets/images/cervula.jpg';
 
-                    return (
-                      <div
-                        key={product.id}
-                        className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 border border-neutral-100/60 transition-all group"
-                      >
-                        <div
-                          onClick={() => handleProductSelect(product.id)}
-                          className="flex items-center gap-4 cursor-pointer flex-1"
+                {/* Big Minimal Close Icon */}
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="p-2 text-neutral-800 hover:text-black transition-opacity hover:opacity-75 focus:outline-none cursor-pointer shrink-0"
+                  aria-label="Close search"
+                >
+                  <X className="w-7 h-7 sm:w-8 sm:h-8 text-neutral-800" strokeWidth={1.3} />
+                </button>
+              </div>
+
+              {/* Main Search Body */}
+              {searchTerm.trim() === '' ? (
+                <div className="space-y-8">
+                  {/* Popular Searches Tags */}
+                  <div>
+                    <h3 className="font-heading font-bold text-xs tracking-[0.18em] uppercase text-neutral-900 mb-3.5 select-none">
+                      POPULAR SEARCHES
+                    </h3>
+                    <div className="flex flex-wrap gap-2.5">
+                      {['SUNGLASSES', 'OPTICAL', 'BESTSELLER', 'CERVULA 01', 'ANAK JUJUR', 'TITANIUM', 'LIMITED EDITION'].map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setSearchTerm(tag)}
+                          className="border border-neutral-900 text-neutral-900 px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-heading font-medium tracking-wider uppercase hover:bg-black hover:text-white transition-all cursor-pointer"
                         >
-                          <img
-                            src={img}
-                            alt={product.name}
-                            className="w-16 h-16 object-contain rounded-lg bg-neutral-100 p-1 shrink-0"
-                          />
-                          <div>
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-bold text-neutral-900 group-hover:text-black">
-                                {product.name}
-                              </span>
-                              {product.badge && (
-                                <Badge variant="outline" className="text-[9px] py-0">
-                                  {product.badge}
-                                </Badge>
-                              )}
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Popular Items 4-Column Grid */}
+                  <div>
+                    <h3 className="font-heading font-bold text-xs tracking-[0.18em] uppercase text-neutral-900 mb-4 select-none">
+                      POPULAR ITEMS
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                      {popularProducts.map((p) => {
+                        const img =
+                          p.images?.find((i) => i.image_type === 'Primary')?.image_url ||
+                          p.images?.[0]?.image_url ||
+                          '/assets/images/cervula.jpg';
+
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => handleProductSelect(p.id)}
+                            className="group cursor-pointer flex flex-col"
+                          >
+                            <div className="aspect-[4/3] bg-neutral-100/70 rounded-xl p-3 flex items-center justify-center overflow-hidden mb-2.5 transition-transform duration-300 group-hover:scale-[1.02]">
+                              <img
+                                src={img}
+                                alt={p.name}
+                                className="w-full h-full object-contain mix-blend-multiply"
+                              />
                             </div>
-                            <div className="text-xs text-neutral-500 font-light mb-1">
-                              {product.edition || '2026 Collection'}
+                            <div className="font-heading font-bold text-xs sm:text-sm uppercase tracking-wide text-neutral-900 group-hover:text-black truncate">
+                              {p.name}
                             </div>
-                            <div className="text-xs font-semibold text-neutral-900">
-                              {product.price}
+                            <div className="text-[11px] text-neutral-500 font-light truncate">
+                              {p.edition || (p.category === 'sunglasses' ? 'Sunglasses' : 'Optical')}
+                            </div>
+                            <div className="text-xs font-semibold text-neutral-900 mt-1">
+                              {p.price}
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              closeSearch();
-                              openQuickview(product);
-                            }}
-                            className="text-xs text-neutral-500 hover:text-black px-2.5 py-1.5 rounded-full border border-neutral-200 hover:border-black transition-colors"
-                          >
-                            Quick View
-                          </button>
-                          <button
-                            onClick={() => handleProductSelect(product.id)}
-                            className="p-2 text-neutral-400 group-hover:text-black transition-colors"
-                            aria-label="View Product"
-                          >
-                            <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <p className="text-neutral-500 text-sm mb-2">
-                    No frames found for "{searchTerm}"
-                  </p>
-                  <p className="text-xs text-neutral-400">
-                    Try searching for "optical", "sunglasses", or specific frame names.
-                  </p>
+                /* Live Filtered Results */
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-100">
+                    <span className="font-heading font-bold text-xs tracking-[0.18em] uppercase text-neutral-900">
+                      RESULTS ({filteredProducts.length})
+                    </span>
+                    <span className="text-xs text-neutral-400 font-light">
+                      Press ESC or click outside to close
+                    </span>
+                  </div>
+
+                  {filteredProducts.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                      {filteredProducts.map((p) => {
+                        const img =
+                          p.images?.find((i) => i.image_type === 'Primary')?.image_url ||
+                          p.images?.[0]?.image_url ||
+                          '/assets/images/cervula.jpg';
+
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => handleProductSelect(p.id)}
+                            className="group cursor-pointer flex flex-col"
+                          >
+                            <div className="aspect-[4/3] bg-neutral-100/70 rounded-xl p-3 flex items-center justify-center overflow-hidden mb-2.5 transition-transform duration-300 group-hover:scale-[1.02]">
+                              <img
+                                src={img}
+                                alt={p.name}
+                                className="w-full h-full object-contain mix-blend-multiply"
+                              />
+                            </div>
+                            <div className="font-heading font-bold text-xs sm:text-sm uppercase tracking-wide text-neutral-900 group-hover:text-black truncate">
+                              {p.name}
+                            </div>
+                            <div className="text-[11px] text-neutral-500 font-light truncate">
+                              {p.edition || (p.category === 'sunglasses' ? 'Sunglasses' : 'Optical')}
+                            </div>
+                            <div className="text-xs font-semibold text-neutral-900 mt-1">
+                              {p.price}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-16">
+                      <p className="font-heading font-semibold text-sm uppercase tracking-wider text-neutral-800 mb-1">
+                        NO FRAMES FOUND FOR "{searchTerm.toUpperCase()}"
+                      </p>
+                      <p className="text-xs text-neutral-400 font-light">
+                        Try searching for "optical", "sunglasses", or specific frame models.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -230,3 +251,4 @@ export const SearchModal: React.FC = () => {
     </AnimatePresence>
   );
 };
+

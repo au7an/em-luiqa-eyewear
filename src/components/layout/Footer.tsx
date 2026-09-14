@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Instagram, Mail, MapPin, Phone, ExternalLink } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useLanguageStore } from '../../store/useLanguageStore';
 
 export const Footer: React.FC = () => {
   const { settings, loadSettings } = useSettingsStore();
+  const { language, openGateway, t } = useLanguageStore();
 
   useEffect(() => {
     loadSettings();
@@ -30,8 +32,7 @@ export const Footer: React.FC = () => {
                 </span>
               </Link>
               <p className="text-neutral-400 text-sm max-w-sm leading-relaxed mb-6 font-light">
-                {settings.footer_text ||
-                  'International avant-garde & optical luxury eyewear. Hand-crafted acetate frames sculpturally engineered to redefine personal vision.'}
+                {settings.footer_text || t('footer.brand_desc')}
               </p>
             </div>
 
@@ -49,7 +50,11 @@ export const Footer: React.FC = () => {
               )}
 
               <a
-                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent('Halo JEM LUIQA Concierge, saya ingin berkonsultasi mengenai produk dan lensa kacamata.')}`}
+                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                  language === 'id'
+                    ? 'Halo JEM LUIQA Concierge, saya ingin berkonsultasi mengenai produk dan lensa kacamata.'
+                    : 'Hello JEM LUIQA Concierge, I would like to inquire about your eyewear and bespoke lenses.'
+                )}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-10 h-10 rounded-full border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white hover:border-white transition-colors"
@@ -73,32 +78,32 @@ export const Footer: React.FC = () => {
           {/* Navigation Links */}
           <div>
             <h4 className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-400 mb-5">
-              Collections
+              {t('footer.navigation_title', 'Collections')}
             </h4>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link to="/catalog?category=sunglasses" className="text-neutral-300 hover:text-white transition-colors">
-                  Sunglasses Series
+                  {language === 'id' ? 'Kacamata Hitam' : 'Sunglasses Series'}
                 </Link>
               </li>
               <li>
                 <Link to="/catalog?category=optical" className="text-neutral-300 hover:text-white transition-colors">
-                  Optical Frames
+                  {language === 'id' ? 'Kacamata Optik' : 'Optical Frames'}
                 </Link>
               </li>
               <li>
                 <Link to="/lenses" className="text-neutral-300 hover:text-white transition-colors">
-                  Custom Lens Services
+                  {t('navbar.lenses', 'Custom Lens Services')}
                 </Link>
               </li>
               <li>
                 <Link to="/lookbook" className="text-neutral-300 hover:text-white transition-colors">
-                  Editorial Lookbook
+                  {t('navbar.lookbook', 'Editorial Lookbook')}
                 </Link>
               </li>
               <li>
                 <Link to="/catalog" className="text-neutral-300 hover:text-white transition-colors">
-                  All Eyewear
+                  {language === 'id' ? 'Semua Kacamata' : 'All Eyewear'}
                 </Link>
               </li>
             </ul>
@@ -107,12 +112,12 @@ export const Footer: React.FC = () => {
           {/* Client Service */}
           <div>
             <h4 className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-400 mb-5">
-              Client Concierge
+              {language === 'id' ? 'Layanan Klien' : 'Client Concierge'}
             </h4>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link to="/contact" className="text-neutral-300 hover:text-white transition-colors">
-                  Contact & Studio Fitting
+                  {language === 'id' ? 'Kontak & Fitting Studio' : 'Contact & Studio Fitting'}
                 </Link>
               </li>
               <li>
@@ -127,12 +132,16 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent('Halo, saya ingin menanyakan informasi pengiriman dan garansi kacamata Jem Luiqa.')}`}
+                  href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    language === 'id'
+                      ? 'Halo, saya ingin menanyakan informasi pengiriman dan garansi kacamata Jem Luiqa.'
+                      : 'Hello, I would like to inquire about warranty and insured shipping for Jem Luiqa eyewear.'
+                  )}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1"
                 >
-                  Warranty & Care <ArrowUpRight size={13} />
+                  {language === 'id' ? 'Garansi & Perawatan' : 'Warranty & Care'} <ArrowUpRight size={13} />
                 </a>
               </li>
               <li>
@@ -146,13 +155,15 @@ export const Footer: React.FC = () => {
           {/* Studio Location */}
           <div>
             <h4 className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-400 mb-5">
-              Studio Space
+              {language === 'id' ? 'Lokasi Atelier' : 'Studio Space'}
             </h4>
             <div className="space-y-3 text-xs text-neutral-400">
               <div className="flex items-start gap-2">
                 <MapPin size={16} className="text-neutral-500 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-white block font-medium">Bandung Flagship Space</strong>
+                  <strong className="text-white block font-medium">
+                    {language === 'id' ? 'Bandung Flagship Atelier' : 'Bandung Flagship Space'}
+                  </strong>
                   <p className="leading-relaxed mt-0.5">{settings.address}</p>
                 </div>
               </div>
@@ -164,10 +175,14 @@ export const Footer: React.FC = () => {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-neutral-300 hover:text-white hover:underline pt-1"
                 >
-                  <span>Get Directions</span>
+                  <span>{language === 'id' ? 'Petunjuk Arah' : 'Get Directions'}</span>
                   <ExternalLink size={11} />
                 </a>
               )}
+
+              <div className="pt-2 border-t border-neutral-800/80 text-[11px] text-neutral-500">
+                {t('footer.hours_weekdays')}
+              </div>
             </div>
           </div>
 
@@ -176,12 +191,18 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <div>
-            © 2026 {settings.brand_name || 'JEM LUIQA'} EYEWEAR. All Rights Reserved.
+            © 2026 {settings.brand_name || 'JEM LUIQA'} EYEWEAR. {t('footer.rights_reserved')}
           </div>
-          <div className="flex gap-6">
-            <span className="hover:text-neutral-300 cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-neutral-300 cursor-pointer">Terms of Service</span>
-            <span className="hover:text-neutral-300 cursor-pointer">Handcrafted Cellulose Acetate</span>
+          <div className="flex items-center gap-6">
+            {/* Language Selector Modal Trigger */}
+            <button
+              type="button"
+              onClick={openGateway}
+              className="text-neutral-400 hover:text-white inline-flex items-center gap-1.5 transition-colors underline underline-offset-4"
+            >
+              <span>{t('footer.switch_language', 'Ubah Bahasa')} ({language.toUpperCase()})</span>
+            </button>
+            <span className="text-neutral-500">{t('footer.guarantee_acetate')}</span>
           </div>
         </div>
       </div>

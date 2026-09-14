@@ -2,34 +2,44 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Layers, ArrowUpRight } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useLanguageStore } from '../../store/useLanguageStore';
 
 export const LensShowcase: React.FC = () => {
   const { getProductWALink } = useSettingsStore();
+  const { t, language } = useLanguageStore();
 
   const categories = [
     {
       title: 'Single Vision',
-      tag: 'Everyday Optical Clarity',
-      desc: 'Precision hard multi-coat CR-39 & high-index lenses for clear distance or reading correction.',
-      badge: 'From IDR 150K',
+      tag: language === 'id' ? 'Kejernihan Penglihatan Harian' : 'Everyday Optical Clarity',
+      desc: language === 'id'
+        ? 'Lensa CR-39 & resin indeks tinggi berlapis hard multi-coat presisi untuk rabun jauh atau membaca.'
+        : 'Precision hard multi-coat CR-39 & high-index lenses for clear distance or reading correction.',
+      badge: language === 'id' ? 'Mulai Rp 150rb' : 'From IDR 150K',
     },
     {
       title: 'Blue Control Defense',
-      tag: 'Digital Screen Filter',
-      desc: 'High-energy 420nm blue-violet light filtration to reduce eye fatigue during screen work.',
-      badge: 'From IDR 250K',
+      tag: language === 'id' ? 'Proteksi Layar Digital' : 'Digital Screen Filter',
+      desc: language === 'id'
+        ? 'Filter radiasi sinar biru 420nm dari layar smartphone & monitor untuk mencegah mata lelah.'
+        : 'High-energy 420nm blue-violet light filtration to reduce eye fatigue during screen work.',
+      badge: language === 'id' ? 'Mulai Rp 250rb' : 'From IDR 250K',
     },
     {
       title: 'Photochromic Transition',
-      tag: 'Adaptive UV Sunlight Tint',
-      desc: 'Intelligent fast darkening outdoors under sunlight while returning crystal clear indoors.',
-      badge: 'From IDR 350K',
+      tag: language === 'id' ? 'Transisi Otomatis Sinar UV' : 'Adaptive UV Sunlight Tint',
+      desc: language === 'id'
+        ? 'Bening jernih di dalam ruangan dan otomatis menggelap menjadi kacamata hitam di bawah terik matahari.'
+        : 'Intelligent fast darkening outdoors under sunlight while returning crystal clear indoors.',
+      badge: language === 'id' ? 'Mulai Rp 350rb' : 'From IDR 350K',
     },
     {
       title: 'Progressive Multifocal',
-      tag: 'Digital Freeform Corridor',
-      desc: 'Seamless vision at all distances without visible lines. Wide corridor for natural comfort.',
-      badge: 'From IDR 650K',
+      tag: language === 'id' ? 'Digital Freeform Tanpa Garis' : 'Digital Freeform Corridor',
+      desc: language === 'id'
+        ? 'Koreksi jarak jauh, menengah, dan dekat tanpa batas garis yang mengganggu. Sangat nyaman dan alami.'
+        : 'Seamless vision at all distances without visible lines. Wide corridor for natural comfort.',
+      badge: language === 'id' ? 'Mulai Rp 650rb' : 'From IDR 650K',
     },
   ];
 
@@ -40,10 +50,10 @@ export const LensShowcase: React.FC = () => {
         <div>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 mb-2">
             <Layers size={13} />
-            Optical Precision
+            {t('home.lens_showcase.eyebrow', 'Optical Precision')}
           </span>
           <h2 className="editorial-title text-3xl sm:text-4xl lg:text-5xl text-neutral-900 uppercase">
-            Custom Lens Laboratory
+            {t('home.lens_showcase.title', 'Custom Lens Laboratory')}
           </h2>
         </div>
 
@@ -52,17 +62,17 @@ export const LensShowcase: React.FC = () => {
             to="/lenses"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-neutral-900 text-white hover:bg-neutral-800 text-xs uppercase tracking-wider font-semibold transition-colors"
           >
-            <span>Explore All Lenses</span>
+            <span>{language === 'id' ? 'Lihat Semua Lensa' : 'Explore All Lenses'}</span>
             <ArrowRight size={14} />
           </Link>
 
           <a
-            href={getProductWALink('Lens Consultation Inquiry')}
+            href={getProductWALink(language === 'id' ? 'Konsultasi Layanan Lensa' : 'Lens Consultation Inquiry')}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-white text-neutral-900 border border-neutral-200 hover:border-neutral-900 text-xs uppercase tracking-wider font-semibold transition-colors"
           >
-            <span>Consult via WhatsApp</span>
+            <span>{t('home.lens_showcase.consult_cta', 'Consult via WhatsApp')}</span>
             <ArrowUpRight size={14} />
           </a>
         </div>
@@ -98,7 +108,7 @@ export const LensShowcase: React.FC = () => {
                 to="/lenses"
                 className="text-xs font-semibold uppercase tracking-wider text-neutral-900 hover:opacity-75 inline-flex items-center gap-1"
               >
-                <span>Learn More</span>
+                <span>{language === 'id' ? 'Pelajari Lebih Lanjut' : 'Learn More'}</span>
                 <ArrowRight size={13} />
               </Link>
             </div>

@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useProductStore } from '../../store/useProductStore';
 import { ProductCard } from '../catalog/ProductCard';
+import { useLanguageStore } from '../../store/useLanguageStore';
 
 export const FeaturedProducts: React.FC = () => {
   const products = useProductStore((state) => state.products);
+  const { t } = useLanguageStore();
   const featured = products
     .filter((p) => p.published && (p.featured ?? true))
     .slice(0, 4);
@@ -15,10 +17,10 @@ export const FeaturedProducts: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 sm:mb-16 gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 block mb-2">
-            Selected Silhouettes
+            {t('home.featured.eyebrow', 'Selected Silhouettes')}
           </span>
           <h2 className="editorial-title text-3xl sm:text-4xl text-neutral-900 uppercase">
-            Signature Pieces
+            {t('home.featured.title', 'Signature Pieces')}
           </h2>
         </div>
 
@@ -26,7 +28,7 @@ export const FeaturedProducts: React.FC = () => {
           to="/catalog"
           className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-neutral-900 hover:opacity-70 transition-opacity"
         >
-          <span>View All 2026 Collection</span>
+          <span>{t('home.featured.view_all', 'View All 2026 Collection')}</span>
           <ArrowRight size={15} />
         </Link>
       </div>

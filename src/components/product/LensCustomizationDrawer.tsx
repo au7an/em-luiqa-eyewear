@@ -18,6 +18,7 @@ import {
 } from '../../types/database';
 import { useLensStore } from '../../store/useLensStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useLanguageStore } from '../../store/useLanguageStore';
 import { parsePriceToNumber, formatRupiahDisplay } from '../../lib/currency';
 import { generateCustomLensOrderWALink } from '../../lib/whatsapp';
 
@@ -68,6 +69,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 }) => {
   const { activeLenses, loadActiveLenses } = useLensStore();
   const { settings } = useSettingsStore();
+  const { t, language } = useLanguageStore();
 
   useEffect(() => {
     loadActiveLenses();
@@ -130,28 +132,28 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
   const stepsList = useMemo(() => {
     if (isNonPrescription) {
       const steps = [
-        { id: 'requirement', label: 'Lens Need' },
-        { id: 'lens', label: 'Lens Type' },
+        { id: 'requirement', label: t('lens_wizard.step_requirement', 'Lens Need') },
+        { id: 'lens', label: t('lens_wizard.step_lens', 'Lens Type') },
       ];
       if (hasLensOptions) {
-        steps.push({ id: 'options', label: 'Treatments' });
+        steps.push({ id: 'options', label: t('lens_wizard.step_options', 'Treatments') });
       }
-      steps.push({ id: 'summary', label: 'Summary' });
+      steps.push({ id: 'summary', label: t('lens_wizard.step_summary', 'Summary') });
       return steps;
     } else {
       const steps = [
-        { id: 'requirement', label: 'Lens Need' },
-        { id: 'vision', label: 'Vision Type' },
-        { id: 'prescription', label: 'Prescription' },
-        { id: 'lens', label: 'Lens Type' },
+        { id: 'requirement', label: t('lens_wizard.step_requirement', 'Lens Need') },
+        { id: 'vision', label: t('lens_wizard.step_vision', 'Vision Type') },
+        { id: 'prescription', label: t('lens_wizard.step_prescription', 'Prescription') },
+        { id: 'lens', label: t('lens_wizard.step_lens', 'Lens Type') },
       ];
       if (hasLensOptions) {
-        steps.push({ id: 'options', label: 'Treatments' });
+        steps.push({ id: 'options', label: t('lens_wizard.step_options', 'Treatments') });
       }
-      steps.push({ id: 'summary', label: 'Summary' });
+      steps.push({ id: 'summary', label: t('lens_wizard.step_summary', 'Summary') });
       return steps;
     }
-  }, [isNonPrescription, hasLensOptions]);
+  }, [isNonPrescription, hasLensOptions, t]);
 
   const totalSteps = stepsList.length;
 
@@ -273,7 +275,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-                  Custom Lens Atelier
+                  {t('lens_wizard.atelier', 'Custom Lens Atelier')}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-neutral-300" />
                 <span className="text-xs font-semibold text-neutral-900 truncate max-w-[200px]">
@@ -281,7 +283,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 </span>
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Selected colorway: <strong className="text-neutral-800">{variant?.color_name || 'Standard'}</strong>
+                {t('lens_wizard.colorway', 'Colorway:')} <strong className="text-neutral-800">{variant?.color_name || 'Standard'}</strong>
               </p>
             </div>
 
@@ -298,10 +300,12 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
           <div className="bg-neutral-50/80 px-6 py-3 border-b border-neutral-100 shrink-0">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
-                Step {currentStep} of {totalSteps}: {stepsList[currentStep - 1]?.label}
+                {language === 'id'
+                  ? `Langkah ${currentStep} dari ${totalSteps}: ${stepsList[currentStep - 1]?.label}`
+                  : `Step ${currentStep} of ${totalSteps}: ${stepsList[currentStep - 1]?.label}`}
               </span>
               <span className="text-[10px] font-semibold text-neutral-400">
-                {Math.round((currentStep / totalSteps) * 100)}% Complete
+                {Math.round((currentStep / totalSteps) * 100)}% {language === 'id' ? 'Selesai' : 'Complete'}
               </span>
             </div>
             {/* Progress line */}
@@ -321,10 +325,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
               <div className="space-y-6 animate-fadeIn">
                 <div className="text-center sm:text-left">
                   <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                    What kind of lenses do you need?
+                    {t('lens_wizard.q_requirement', 'What kind of lenses do you need?')}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                    Choose whether you require optical prescription diopters or non-prescription plano lenses.
+                    {t('lens_wizard.q_requirement_desc', 'Choose whether you require optical prescription diopters or non-prescription plano lenses.')}
                   </p>
                 </div>
 
@@ -342,11 +346,13 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-200/60 text-[10px] uppercase font-bold tracking-wider text-neutral-700 mb-2">
-                          Plano / Normal
+                          {t('lens_wizard.non_prescription_tag', 'Plano / Normal')}
                         </div>
-                        <h4 className="text-base font-bold text-neutral-900">Non-Prescription Lenses</h4>
+                        <h4 className="text-base font-bold text-neutral-900">
+                          {t('lens_wizard.non_prescription_title', 'Non-Prescription Lenses')}
+                        </h4>
                         <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
-                          For everyday style, eye protection, digital blue cut, or adaptive photochromic transitions without vision correction.
+                          {t('lens_wizard.non_prescription_desc')}
                         </p>
                       </div>
                       <div
@@ -374,11 +380,13 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-900 text-[10px] uppercase font-bold tracking-wider text-white mb-2">
-                          Diopter Correction
+                          {t('lens_wizard.prescription_tag', 'Diopter Correction')}
                         </div>
-                        <h4 className="text-base font-bold text-neutral-900">Prescription Lenses</h4>
+                        <h4 className="text-base font-bold text-neutral-900">
+                          {t('lens_wizard.prescription_title', 'Prescription Lenses')}
+                        </h4>
                         <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
-                          Tailored optical precision for myopia (minus), hyperopia (plus), astigmatism (cylinder), bifocal, or progressive.
+                          {t('lens_wizard.prescription_desc')}
                         </p>
                       </div>
                       <div
@@ -401,10 +409,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
               <div className="space-y-6 animate-fadeIn">
                 <div>
                   <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                    Select Vision Correction Type
+                    {t('lens_wizard.q_vision', 'Select Vision Correction Type')}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                    Choose the optical geometry matching your prescription requirements.
+                    {t('lens_wizard.q_vision_desc', 'Choose the optical geometry matching your prescription requirements.')}
                   </p>
                 </div>
 
@@ -412,21 +420,21 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   {[
                     {
                       type: 'Single Vision' as VisionType,
-                      title: 'Single Vision',
-                      tag: 'Most Popular',
-                      desc: 'Corrects one field of vision: distance, computer, or close-up reading.',
+                      title: t('lens_wizard.single_vision_title', 'Single Vision'),
+                      tag: t('lens_wizard.single_vision_tag', 'Most Popular'),
+                      desc: t('lens_wizard.single_vision_desc', 'Corrects one field of vision: distance, computer, or close-up reading.'),
                     },
                     {
                       type: 'Bifocal' as VisionType,
-                      title: 'Bifocal',
-                      tag: 'Dual Focus',
-                      desc: 'Distinct segmented zones with visible reading line for dedicated distance + reading.',
+                      title: t('lens_wizard.bifocal_title', 'Bifocal'),
+                      tag: t('lens_wizard.bifocal_tag', 'Dual Focus'),
+                      desc: t('lens_wizard.bifocal_desc', 'Distinct segmented zones with visible reading line for dedicated distance + reading.'),
                     },
                     {
                       type: 'Progressive' as VisionType,
-                      title: 'Progressive Multifocal',
-                      tag: 'No Line',
-                      desc: 'Smooth, line-free gradual transition from distance, intermediate screen, to reading.',
+                      title: t('lens_wizard.progressive_title', 'Progressive Multifocal'),
+                      tag: t('lens_wizard.progressive_tag', 'No Line'),
+                      desc: t('lens_wizard.progressive_desc', 'Smooth, line-free gradual transition from distance, intermediate screen, to reading.'),
                     },
                   ].map((item) => (
                     <button
@@ -468,10 +476,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
               <div className="space-y-6 animate-fadeIn">
                 <div>
                   <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                    Enter Prescription Values
+                    {t('lens_wizard.q_prescription', 'Enter Prescription Values')}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                    Select your diopter specifications for Right Eye (OD) and Left Eye (OS).
+                    {t('lens_wizard.q_prescription_desc', 'Select your diopter specifications for Right Eye (OD) and Left Eye (OS).')}
                   </p>
                 </div>
 
@@ -481,10 +489,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <HelpCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-                        Need help reading your prescription?
+                        {t('lens_wizard.unsure_help_title', 'Need help reading your prescription?')}
                       </h4>
                       <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
-                        Don’t worry! You can skip entering numbers manually and simply send a photo of your doctor’s prescription slip via WhatsApp.
+                        {t('lens_wizard.unsure_help_desc', 'Don’t worry! You can skip entering numbers manually and simply send a photo of your doctor’s prescription slip via WhatsApp.')}
                       </p>
                     </div>
                   </div>
@@ -498,7 +506,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       }
                       className="rounded border-amber-300 text-neutral-900 focus:ring-neutral-900 h-4 w-4"
                     />
-                    <span>I’m not sure / I will send a photo of my prescription on WhatsApp</span>
+                    <span>{t('lens_wizard.unsure_checkbox', 'I’m not sure / I will send a photo of my prescription on WhatsApp')}</span>
                   </label>
                 </div>
 
@@ -508,7 +516,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-                          Right Eye (OD - Oculus Dexter)
+                          {t('lens_wizard.od_title', 'Right Eye (OD - Oculus Dexter)')}
                         </span>
                         <span className="text-[10px] font-semibold text-neutral-400">Sphere / Cyl / Axis</span>
                       </div>
@@ -516,7 +524,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       <div className="grid grid-cols-3 gap-2">
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            SPH (Sphere)
+                            {t('lens_wizard.sph_label', 'SPH (Sphere)')}
                           </label>
                           <select
                             value={prescription.od.sph}
@@ -538,7 +546,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            CYL (Cylinder)
+                            {t('lens_wizard.cyl_label', 'CYL (Cylinder)')}
                           </label>
                           <select
                             value={prescription.od.cyl}
@@ -560,7 +568,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            AXIS (1-180°)
+                            {t('lens_wizard.axis_label', 'AXIS (1-180°)')}
                           </label>
                           <input
                             type="number"
@@ -585,7 +593,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-                          Left Eye (OS - Oculus Sinister)
+                          {t('lens_wizard.os_title', 'Left Eye (OS - Oculus Sinister)')}
                         </span>
                         <span className="text-[10px] font-semibold text-neutral-400">Sphere / Cyl / Axis</span>
                       </div>
@@ -593,7 +601,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       <div className="grid grid-cols-3 gap-2">
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            SPH (Sphere)
+                            {t('lens_wizard.sph_label', 'SPH (Sphere)')}
                           </label>
                           <select
                             value={prescription.os.sph}
@@ -615,7 +623,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            CYL (Cylinder)
+                            {t('lens_wizard.cyl_label', 'CYL (Cylinder)')}
                           </label>
                           <select
                             value={prescription.os.cyl}
@@ -637,7 +645,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                            AXIS (1-180°)
+                            {t('lens_wizard.axis_label', 'AXIS (1-180°)')}
                           </label>
                           <input
                             type="number"
@@ -662,10 +670,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 flex items-center justify-between">
                       <div>
                         <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
-                          Pupillary Distance (PD)
+                          {t('lens_wizard.pd_title', 'Pupillary Distance (PD)')}
                         </span>
                         <span className="text-[11px] text-neutral-500">
-                          Distance between your pupils in millimeters (typically 58 - 66mm).
+                          {t('lens_wizard.pd_desc', 'Distance between your pupils in millimeters (typically 58 - 66mm).')}
                         </span>
                       </div>
 
@@ -695,10 +703,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
               <div className="space-y-6 animate-fadeIn">
                 <div>
                   <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                    Select Lens Formulation
+                    {t('lens_wizard.q_lens', 'Select Lens Formulation')}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                    Precision optical coatings and filters curated for your silhouette.
+                    {t('lens_wizard.q_lens_desc', 'Precision optical coatings and filters curated for your silhouette.')}
                   </p>
                 </div>
 
@@ -746,7 +754,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
                           <div className="text-right shrink-0">
                             <span className="text-[10px] uppercase font-bold text-neutral-400 block">
-                              Starts from
+                              {t('lens_wizard.starts_from', 'Starts from')}
                             </span>
                             <span className="text-sm font-bold text-neutral-900 block mt-0.5">
                               {lens.starting_price}
@@ -775,10 +783,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 <div className="space-y-6 animate-fadeIn">
                   <div>
                     <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                      Customize Lens Options
+                      {t('lens_wizard.q_options', 'Customize Lens Options')}
                     </h3>
                     <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                      Select specific tints, shades, or profile treatments for {selectedLens?.name}.
+                      {t('lens_wizard.q_options_desc', 'Select specific tints, shades, or profile treatments for your lens.')}
                     </p>
                   </div>
 
@@ -816,7 +824,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                                     </span>
                                   ) : (
                                     <span className="text-[10px] text-neutral-400 uppercase font-semibold">
-                                      Included
+                                      {t('lens_wizard.included', 'Included')}
                                     </span>
                                   )}
                                   <div
@@ -844,10 +852,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
               <div className="space-y-6 animate-fadeIn">
                 <div>
                   <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
-                    Configuration Summary
+                    {t('lens_wizard.summary_title', 'Configuration Summary')}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                    Review your eyewear silhouette, prescription details, and selected lens package.
+                    {t('lens_wizard.summary_desc', 'Review your eyewear silhouette, prescription details, and selected lens package.')}
                   </p>
                 </div>
 
@@ -856,13 +864,13 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   <div className="flex items-start justify-between pb-4 border-b border-neutral-200/60">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                        Frame Silhouette
+                        {t('lens_wizard.frame_silhouette', 'Frame Silhouette')}
                       </span>
                       <h4 className="text-sm font-bold text-neutral-900 uppercase mt-0.5">
                         {product.name}
                       </h4>
                       <p className="text-xs text-neutral-600 mt-0.5">
-                        Colorway: <span className="font-semibold text-neutral-800">{variant?.color_name || 'Standard'}</span>
+                        {t('lens_wizard.colorway', 'Colorway:')} <span className="font-semibold text-neutral-800">{variant?.color_name || 'Standard'}</span>
                         {variant?.sku && <span className="text-neutral-400 text-[11px]"> ({variant.sku})</span>}
                       </p>
                     </div>
@@ -875,14 +883,14 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   <div className="flex items-start justify-between pb-4 border-b border-neutral-200/60 text-xs">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                        Lens Requirement
+                        {t('lens_wizard.lens_need', 'Lens Requirement')}
                       </span>
                       <span className="font-semibold text-neutral-800 block mt-0.5">
-                        {isNonPrescription ? 'Non-Prescription (Plano / Normal)' : 'Prescription'}
+                        {isNonPrescription ? t('lens_wizard.non_prescription_title', 'Non-Prescription (Plano / Normal)') : t('lens_wizard.prescription_title', 'Prescription')}
                       </span>
                       {!isNonPrescription && (
                         <span className="text-neutral-500 text-[11px]">
-                          Vision Type: {visionType}
+                          {t('lens_wizard.step_vision', 'Vision Type')}: {visionType}
                         </span>
                       )}
                     </div>
@@ -892,24 +900,24 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   {!isNonPrescription && (
                     <div className="pb-4 border-b border-neutral-200/60 text-xs space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                        Prescription Specifications
+                        {t('lens_wizard.prescription_specs', 'Prescription Specifications')}
                       </span>
                       {prescription.unsure ? (
                         <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
                           <HelpCircle size={14} className="shrink-0 text-amber-700" />
-                          <span>Akan diverifikasi melalui foto resep via chat WhatsApp.</span>
+                          <span>{t('lens_wizard.photo_verification_notice', 'Akan diverifikasi melalui foto resep via chat WhatsApp.')}</span>
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-3 rounded-lg border border-neutral-200/70">
                           <div>
-                            <span className="font-bold text-neutral-900 block">OD (Right):</span>
+                            <span className="font-bold text-neutral-900 block">{language === 'id' ? 'OD (Kanan):' : 'OD (Right):'}</span>
                             <span className="text-neutral-600">
                               SPH: {prescription.od.sph} | CYL: {prescription.od.cyl}{' '}
                               {prescription.od.axis ? `| AXIS: ${prescription.od.axis}°` : ''}
                             </span>
                           </div>
                           <div>
-                            <span className="font-bold text-neutral-900 block">OS (Left):</span>
+                            <span className="font-bold text-neutral-900 block">{language === 'id' ? 'OS (Kiri):' : 'OS (Left):'}</span>
                             <span className="text-neutral-600">
                               SPH: {prescription.os.sph} | CYL: {prescription.os.cyl}{' '}
                               {prescription.os.axis ? `| AXIS: ${prescription.os.axis}°` : ''}
@@ -928,7 +936,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     <div className="flex items-start justify-between pb-4 border-b border-neutral-200/60">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                          Selected Lens Package
+                          {t('lens_wizard.selected_lens_package', 'Selected Lens Package')}
                         </span>
                         <h4 className="text-sm font-bold text-neutral-900 mt-0.5">
                           {selectedLens.name}
@@ -957,14 +965,14 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   <div className="flex items-baseline justify-between pt-1">
                     <div>
                       <span className="text-xs uppercase font-bold tracking-wider text-neutral-500 block">
-                        Estimated Total
+                        {t('lens_wizard.estimated_total', 'Estimated Total')}
                       </span>
                       <span className="text-[10px] text-neutral-400">
-                        Includes frame + custom lens service
+                        {t('lens_wizard.estimated_total_note', 'Includes frame + custom lens service')}
                       </span>
                     </div>
                     <span className="text-xl font-bold text-neutral-900 tracking-tight">
-                      {priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : 'Price to be confirmed'}
+                      {priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : (language === 'id' ? 'Harga akan dikonfirmasi' : 'Price to be confirmed')}
                     </span>
                   </div>
                 </div>
@@ -974,10 +982,10 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   <MessageCircle size={20} className="text-emerald-400 shrink-0 mt-0.5" />
                   <div className="text-xs leading-relaxed space-y-1">
                     <p className="font-semibold text-white">
-                      Order via JEM LUIQA Concierge
+                      {t('lens_wizard.concierge_title', 'Order via JEM LUIQA Concierge')}
                     </p>
                     <p className="text-neutral-300 text-[11px]">
-                      Clicking below will launch WhatsApp with your custom lens specifications prefilled. Our licensed optical concierge will double check your parameters and confirm order details.
+                      {t('lens_wizard.concierge_desc')}
                     </p>
                   </div>
                 </div>
@@ -995,7 +1003,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 className="px-4 py-3 rounded-full border border-neutral-200 text-neutral-700 hover:text-black hover:border-black font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors"
               >
                 <ArrowLeft size={14} />
-                <span>Back</span>
+                <span>{t('lens_wizard.back', 'Back')}</span>
               </button>
             ) : (
               <div />
@@ -1008,7 +1016,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 disabled={currentStep === 1 && !requirement}
                 className="ml-auto px-6 py-3 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs tracking-wider uppercase flex items-center gap-2 transition-all disabled:opacity-50"
               >
-                <span>Continue</span>
+                <span>{t('lens_wizard.continue', 'Continue')}</span>
                 <ArrowRight size={14} />
               </button>
             ) : (
@@ -1019,7 +1027,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 className="ml-auto flex-1 max-w-xs py-3.5 px-6 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-md active:scale-98"
               >
                 <MessageCircle size={16} />
-                <span>Continue on WhatsApp</span>
+                <span>{t('lens_wizard.continue_wa', 'Continue on WhatsApp')}</span>
               </a>
             )}
           </div>
