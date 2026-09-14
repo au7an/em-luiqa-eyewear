@@ -1,9 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useProductStore } from '../../store/useProductStore';
 import { ProductCard } from '../catalog/ProductCard';
 import { useLanguageStore } from '../../store/useLanguageStore';
+import { AnimatedButton } from '../common/AnimatedButton';
 
 export const FeaturedProducts: React.FC = () => {
   const products = useProductStore((state) => state.products);
@@ -24,13 +24,14 @@ export const FeaturedProducts: React.FC = () => {
           </h2>
         </div>
 
-        <Link
+        <AnimatedButton
           to="/catalog"
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-neutral-900 hover:opacity-70 transition-opacity"
+          variant="outline-dark"
+          className="px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-semibold"
         >
           <span>{t('home.featured.view_all', 'View All 2026 Collection')}</span>
           <ArrowRight size={15} />
-        </Link>
+        </AnimatedButton>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

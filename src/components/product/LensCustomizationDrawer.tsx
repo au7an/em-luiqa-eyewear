@@ -21,6 +21,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useLanguageStore } from '../../store/useLanguageStore';
 import { parsePriceToNumber, formatRupiahDisplay } from '../../lib/currency';
 import { generateCustomLensOrderWALink } from '../../lib/whatsapp';
+import { AnimatedButton } from '../common/AnimatedButton';
 
 interface LensCustomizationDrawerProps {
   isOpen: boolean;
@@ -997,38 +998,41 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
           {/* Bottom Navigation & CTA Actions */}
           <div className="px-6 py-4 border-t border-neutral-100 bg-white flex items-center justify-between gap-3 shrink-0">
             {currentStep > 1 ? (
-              <button
+              <AnimatedButton
                 type="button"
+                variant="outline-dark"
                 onClick={handleBack}
-                className="px-4 py-3 rounded-full border border-neutral-200 text-neutral-700 hover:text-black hover:border-black font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors"
+                className="px-4 py-3 rounded-full font-semibold text-xs tracking-wider uppercase"
               >
                 <ArrowLeft size={14} />
                 <span>{t('lens_wizard.back', 'Back')}</span>
-              </button>
+              </AnimatedButton>
             ) : (
               <div />
             )}
 
             {currentStep < totalSteps ? (
-              <button
+              <AnimatedButton
                 type="button"
+                variant="dark"
                 onClick={handleNext}
                 disabled={currentStep === 1 && !requirement}
-                className="ml-auto px-6 py-3 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs tracking-wider uppercase flex items-center gap-2 transition-all disabled:opacity-50"
+                className="ml-auto px-6 py-3 rounded-full font-semibold text-xs tracking-wider uppercase"
               >
                 <span>{t('lens_wizard.continue', 'Continue')}</span>
                 <ArrowRight size={14} />
-              </button>
+              </AnimatedButton>
             ) : (
-              <a
+              <AnimatedButton
                 href={whatsappOrderUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="ml-auto flex-1 max-w-xs py-3.5 px-6 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-md active:scale-98"
+                variant="emerald"
+                className="ml-auto flex-1 max-w-xs py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase shadow-md"
               >
                 <MessageCircle size={16} />
                 <span>{t('lens_wizard.continue_wa', 'Continue on WhatsApp')}</span>
-              </a>
+              </AnimatedButton>
             )}
           </div>
         </motion.div>

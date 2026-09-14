@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguageStore } from '../../store/useLanguageStore';
+import { AnimatedButton } from './AnimatedButton';
 
 export const LanguageGatewayModal: React.FC = () => {
   const { isGatewayOpen, setLanguage, closeGateway } = useLanguageStore();
@@ -33,51 +34,27 @@ export const LanguageGatewayModal: React.FC = () => {
             PILIH BAHASA / SELECT LANGUAGE
           </h2>
 
-          {/* 2 Clean Landscape Selection Boxes (No dark border, fill-in from bottom animation) */}
+          {/* 2 Clean Landscape Selection Boxes (Stationary Reveal Fill Animation) */}
           <div className="grid grid-cols-2 gap-3 sm:gap-5 w-full max-w-lg">
             {/* Box 1: Indonesia */}
-            <button
+            <AnimatedButton
               type="button"
+              variant="light"
               onClick={() => setLanguage('id')}
-              className="group relative overflow-hidden bg-white rounded-xl sm:rounded-2xl shadow-xl h-14 sm:h-20 flex items-center justify-center cursor-pointer active:scale-95 transition-transform duration-200 select-none border-0 focus:outline-none"
+              className="rounded-xl sm:rounded-2xl shadow-xl h-14 sm:h-20 font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase border-0 focus:outline-none"
             >
-              {/* Base Black Text */}
-              <span className="font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase text-neutral-900">
-                INDONESIA
-              </span>
-
-              {/* Fill-in overlay from bottom */}
-              <div
-                className="absolute inset-0 bg-black flex items-center justify-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none"
-                aria-hidden="true"
-              >
-                <span className="font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase text-white">
-                  INDONESIA
-                </span>
-              </div>
-            </button>
+              INDONESIA
+            </AnimatedButton>
 
             {/* Box 2: English */}
-            <button
+            <AnimatedButton
               type="button"
+              variant="light"
               onClick={() => setLanguage('en')}
-              className="group relative overflow-hidden bg-white rounded-xl sm:rounded-2xl shadow-xl h-14 sm:h-20 flex items-center justify-center cursor-pointer active:scale-95 transition-transform duration-200 select-none border-0 focus:outline-none"
+              className="rounded-xl sm:rounded-2xl shadow-xl h-14 sm:h-20 font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase border-0 focus:outline-none"
             >
-              {/* Base Black Text */}
-              <span className="font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase text-neutral-900">
-                ENGLISH
-              </span>
-
-              {/* Fill-in overlay from bottom */}
-              <div
-                className="absolute inset-0 bg-black flex items-center justify-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none"
-                aria-hidden="true"
-              >
-                <span className="font-heading font-bold text-sm sm:text-lg md:text-xl tracking-wider uppercase text-white">
-                  ENGLISH
-                </span>
-              </div>
-            </button>
+              ENGLISH
+            </AnimatedButton>
           </div>
         </motion.div>
       </div>

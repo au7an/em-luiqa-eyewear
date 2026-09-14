@@ -21,6 +21,7 @@ import { ColorSwatchPicker } from '../components/catalog/ColorSwatchPicker';
 import { LensCustomizationDrawer } from '../components/product/LensCustomizationDrawer';
 import { ProductVariant } from '../types/database';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { AnimatedButton } from '../components/common/AnimatedButton';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -349,19 +350,25 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2.5">
-                  <a
-                    href={shopeeUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`flex-1 py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all hover:shadow-md active:scale-98 ${
-                      currentStock === 'Sold Out'
-                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed pointer-events-none'
-                        : 'bg-[#EE4D2D] hover:bg-[#e03a19] text-white shadow-sm'
-                    }`}
-                  >
-                    <ShoppingBag size={16} />
-                    <span>{currentStock === 'Sold Out' ? t('pdp.out_of_stock_shopee', 'Out of Stock on Shopee') : t('pdp.buy_shopee', 'Buy on Shopee')}</span>
-                  </a>
+                  {currentStock === 'Sold Out' ? (
+                    <div className="flex-1 py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">
+                      <ShoppingBag size={16} />
+                      <span>{t('pdp.out_of_stock_shopee', 'Out of Stock on Shopee')}</span>
+                    </div>
+                  ) : (
+                    <AnimatedButton
+                      href={shopeeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      variant="none"
+                      className="flex-1 py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase bg-[#EE4D2D] text-white shadow-sm border border-[#EE4D2D]"
+                      overlayClassName="bg-neutral-950"
+                      overlayTextClassName="text-white font-semibold"
+                    >
+                      <ShoppingBag size={16} />
+                      <span>{t('pdp.buy_shopee', 'Buy on Shopee')}</span>
+                    </AnimatedButton>
+                  )}
 
                   <button
                     onClick={() => toggleWishlist(product.id)}
@@ -398,15 +405,16 @@ export const ProductDetailPage: React.FC = () => {
                   {t('pdp.option2_desc')}
                 </p>
 
-                <button
+                <AnimatedButton
                   type="button"
+                  variant="dark"
                   onClick={() => setIsLensDrawerOpen(true)}
-                  className="w-full py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm hover:shadow-md active:scale-98"
+                  className="w-full py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase shadow-sm"
                 >
                   <Layers size={16} />
                   <span>{t('pdp.customize_lens', 'Customize with Lens')}</span>
                   <ArrowUpRight size={15} />
-                </button>
+                </AnimatedButton>
               </div>
             </div>
 

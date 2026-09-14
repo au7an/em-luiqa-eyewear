@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCampaignStore } from '../../store/useCampaignStore';
+import { AnimatedButton } from '../common/AnimatedButton';
 
 const DEFAULT_SLIDE_DURATION = 6000;
 
@@ -158,19 +158,21 @@ export const HeroCarousel: React.FC = () => {
 
             {/* Frosted Glass Outline Pill Buttons */}
             <div className="flex items-center justify-center gap-2.5 sm:gap-3.5">
-              <Link
+              <AnimatedButton
                 to={currentSlide.primary_cta_url}
-                className="px-6 sm:px-8 py-2 sm:py-2.5 rounded-full border border-white/75 bg-white/10 hover:bg-white/20 text-white text-[12px] sm:text-[13px] font-normal tracking-wide backdrop-blur-xs transition-all duration-200 shadow-sm active:scale-98"
+                variant="outline-white"
+                className="px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[12px] sm:text-[13px] tracking-wide"
               >
                 {currentSlide.primary_cta_label}
-              </Link>
+              </AnimatedButton>
 
-              <Link
+              <AnimatedButton
                 to={currentSlide.secondary_cta_url}
-                className="px-6 sm:px-8 py-2 sm:py-2.5 rounded-full border border-white/75 bg-white/10 hover:bg-white/20 text-white text-[12px] sm:text-[13px] font-normal tracking-wide backdrop-blur-xs transition-all duration-200 shadow-sm active:scale-98"
+                variant="outline-white"
+                className="px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[12px] sm:text-[13px] tracking-wide"
               >
                 {currentSlide.secondary_cta_label}
-              </Link>
+              </AnimatedButton>
             </div>
           </motion.div>
         </AnimatePresence>

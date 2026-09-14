@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { Sparkles, Shield, ArrowRight } from 'lucide-react';
 import { useLanguageStore } from '../../store/useLanguageStore';
+import { AnimatedButton } from '../common/AnimatedButton';
 
 export const EditorialStory: React.FC = () => {
   const { language } = useLanguageStore();
@@ -65,13 +65,14 @@ export const EditorialStory: React.FC = () => {
             </div>
 
             <div className="pt-4">
-              <Link
+              <AnimatedButton
                 to="/lookbook"
-                className="inline-flex items-center gap-2 bg-black text-white hover:bg-neutral-800 px-6 py-3.5 rounded-full text-xs uppercase tracking-wider font-semibold transition-colors"
+                variant="dark"
+                className="px-6 py-3.5 rounded-full text-xs uppercase tracking-wider font-semibold"
               >
                 <span>{language === 'id' ? 'Lihat Lookbook 2026' : 'View 2026 Lookbook'}</span>
                 <ArrowRight size={15} />
-              </Link>
+              </AnimatedButton>
             </div>
           </div>
 

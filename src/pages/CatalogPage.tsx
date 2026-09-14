@@ -7,6 +7,7 @@ import { ProductCard } from '../components/catalog/ProductCard';
 import { FilterPopover } from '../components/catalog/FilterPopover';
 import { ProductCategory } from '../types/database';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { AnimatedButton } from '../components/common/AnimatedButton';
 
 export const CatalogPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -402,15 +403,17 @@ export const CatalogPage: React.FC = () => {
               ? 'Coba sesuaikan filter pencarian Anda atau hapus kata kunci yang dimasukkan.'
               : 'Try adjusting your discovery filters, switching face shapes, or clearing search keywords.'}
           </p>
-          <button
+          <AnimatedButton
+            type="button"
+            variant="dark"
             onClick={() => {
               handleCategoryChange('all');
               resetDiscoveryFilters();
             }}
-            className="px-6 py-2.5 rounded-full bg-neutral-900 text-white text-xs uppercase tracking-wider font-semibold hover:bg-neutral-800 transition-colors"
+            className="px-6 py-2.5 rounded-full text-xs uppercase tracking-wider font-semibold"
           >
             {t('catalog.clear_filters', 'View All Silhouettes')}
-          </button>
+          </AnimatedButton>
         </div>
       )}
     </div>
