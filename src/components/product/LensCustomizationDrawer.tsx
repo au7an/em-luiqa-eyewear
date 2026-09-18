@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   ArrowLeft,
   ArrowRight,
   Check,
-  HelpCircle,
   MessageCircle,
+  ChevronDown,
+  Upload,
+  FileText,
+  CheckCircle2,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import {
   Product,
@@ -17,10 +22,10 @@ import {
   CustomLensSelection,
 } from '../../types/database';
 import { useLensStore } from '../../store/useLensStore';
-import { useSettingsStore } from '../../store/useSettingsStore';
 import { useLanguageStore } from '../../store/useLanguageStore';
+import { useInquiryStore } from '../../store/useInquiryStore';
+import { uploadMediaToStorage } from '../../lib/storage';
 import { parsePriceToNumber, formatRupiahDisplay } from '../../lib/currency';
-import { generateCustomLensOrderWALink } from '../../lib/whatsapp';
 import { AnimatedButton } from '../common/AnimatedButton';
 
 interface LensCustomizationDrawerProps {
@@ -54,13 +59,7 @@ const CYL_OPTIONS = (() => {
   return opts;
 })();
 
-const PD_OPTIONS = (() => {
-  const opts: string[] = [];
-  for (let val = 54; val <= 74; val += 1) {
-    opts.push(val.toString());
-  }
-  return opts;
-})();
+
 
 export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = ({
   isOpen,
@@ -69,7 +68,6 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
   variant,
 }) => {
   const { activeLenses, loadActiveLenses } = useLensStore();
-  const { settings } = useSettingsStore();
   const { t, language } = useLanguageStore();
 
   useEffect(() => {
@@ -85,13 +83,58 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
   const [prescription, setPrescription] = useState<PrescriptionData>({
     od: { sph: '-2.00', cyl: '0.00', axis: '' },
     os: { sph: '-2.00', cyl: '0.00', axis: '' },
-    pd: '62',
+    pd: '',
+    add: '',
+    cc: '',
     unsure: false,
     notes: '',
   });
 
   const [selectedLensId, setSelectedLensId] = useState<string>('');
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({}); // optionId -> choiceLabel
+
+  // Inquiry & Prescription Upload State
+  const { submitInquiry } = useInquiryStore();
+  const [prescriptionMode, setPrescriptionMode] = useState<'manual' | 'upload'>('manual');
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>('');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Customer Contact State
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Scroll Tracking for Step Indicators
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop > 30) {
+      setShowScrollIndicator(false);
+    } else {
+      setShowScrollIndicator(true);
+    }
+  };
+
+  useEffect(() => {
+    // Reset scroll & indicator when step changes
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+    setShowScrollIndicator(true);
+  }, [currentStep]);
+
+  const handleScrollDownClick = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ top: 340, behavior: 'smooth' });
+    }
+  };
 
   // Dynamic steps calculation
   // Non-Prescription:
@@ -209,22 +252,171 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
     };
   }, [variant, product, selectedLens, selectedOptions]);
 
-  // WhatsApp payload
-  const waSelection: CustomLensSelection = {
-    requirement,
-    visionType: isNonPrescription ? undefined : visionType,
-    prescription: isNonPrescription ? undefined : prescription,
-    lensService: selectedLens,
-    selectedOptions,
-    estimatedTotalPrice: priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : 'Price to be confirmed',
+  // File upload handler
+  const handleFileUpload = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError(language === 'id' ? 'Ukuran file maksimal 10MB.' : 'File size must be under 10MB.');
+      return;
+    }
+
+    setIsUploadingFile(true);
+    setUploadError(null);
+    setUploadedFileName(file.name);
+
+    const localUrl = URL.createObjectURL(file);
+    setUploadedFileUrl(localUrl);
+
+    try {
+      const res = await uploadMediaToStorage({
+        bucket: 'products',
+        file,
+        folder: 'prescriptions',
+        maxSizeMB: 10,
+      });
+
+      if (res.url) {
+        setUploadedFileUrl(res.url);
+        setPrescription((p) => ({
+          ...p,
+          prescription_mode: 'upload',
+          prescription_file_url: res.url,
+          prescription_file_name: file.name,
+          unsure: true,
+        }));
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = reader.result as string;
+          setUploadedFileUrl(b64);
+          setPrescription((p) => ({
+            ...p,
+            prescription_mode: 'upload',
+            prescription_file_url: b64,
+            prescription_file_name: file.name,
+            unsure: true,
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = reader.result as string;
+        setUploadedFileUrl(b64);
+        setPrescription((p) => ({
+          ...p,
+          prescription_mode: 'upload',
+          prescription_file_url: b64,
+          prescription_file_name: file.name,
+          unsure: true,
+        }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
-  const whatsappOrderUrl = generateCustomLensOrderWALink({
-    product,
-    variant,
-    selection: waSelection,
-    phone: settings.whatsapp_number,
-  });
+  const handleRemoveUploadedFile = () => {
+    setUploadedFileUrl('');
+    setUploadedFileName('');
+    setPrescription((p) => ({
+      ...p,
+      prescription_file_url: undefined,
+      prescription_file_name: undefined,
+    }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsSubmittedSuccess(false);
+    setCurrentStep(1);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerEmail('');
+    setSubmitError(null);
+    onClose();
+  };
+
+  const handleSubmitOrder = async () => {
+    if (!customerName.trim() || !customerPhone.trim()) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const selection: CustomLensSelection = {
+        requirement,
+        visionType: isNonPrescription ? undefined : visionType,
+        prescription: isNonPrescription
+          ? undefined
+          : {
+              ...prescription,
+              prescription_mode: prescriptionMode,
+              prescription_file_url: uploadedFileUrl || prescription.prescription_file_url,
+              prescription_file_name: uploadedFileName || prescription.prescription_file_name,
+              unsure: prescriptionMode === 'upload',
+            },
+        lensService: selectedLens,
+        selectedOptions,
+        estimatedTotalPrice: priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : undefined,
+      };
+
+      let messageSummary = `Pesanan Custom Lensa: ${product.name} (${variant?.color_name || 'Standard'})\n`;
+      messageSummary += `Kebutuhan: ${requirement === 'non-prescription' ? 'Non-Prescription (Plano)' : `Prescription (${visionType})`}\n`;
+
+      if (!isNonPrescription) {
+        if (prescriptionMode === 'upload') {
+          messageSummary += `Resep: Upload Foto/PDF (${uploadedFileName || 'Dokumen terlampir'})\n`;
+          if (prescription.notes) messageSummary += `Catatan: ${prescription.notes}\n`;
+        } else {
+          messageSummary += `OD: SPH ${prescription.od.sph}, CYL ${prescription.od.cyl}, AXIS ${prescription.od.axis || '-'}\n`;
+          messageSummary += `OS: SPH ${prescription.os.sph}, CYL ${prescription.os.cyl}, AXIS ${prescription.os.axis || '-'}\n`;
+          if (prescription.pd) messageSummary += `PD: ${prescription.pd}\n`;
+          if (prescription.add) messageSummary += `ADD: ${prescription.add}\n`;
+          if (prescription.cc) messageSummary += `CC: ${prescription.cc}\n`;
+        }
+      }
+
+      if (selectedLens) {
+        messageSummary += `Lensa: ${selectedLens.name}\n`;
+        if (Object.keys(selectedOptions).length > 0) {
+          messageSummary += `Opsi: ${Object.entries(selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}\n`;
+        }
+      }
+
+      messageSummary += `Estimasi Total: ${priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : 'Menunggu Konfirmasi'}`;
+
+      const res = await submitInquiry({
+        name: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: customerEmail.trim() || undefined,
+        subject: `Custom Lens — ${product.name}`,
+        message: messageSummary,
+        product_id: product.id,
+        product_name: product.name,
+        variant_name: variant?.color_name || 'Standard',
+        variant_sku: variant?.sku || product.sku,
+        variant_color_hex: variant?.color_hex,
+        prescription_file_url: uploadedFileUrl || undefined,
+        prescription_file_name: uploadedFileName || undefined,
+        custom_lens_data: selection,
+        total_price: priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : undefined,
+      });
+
+      if (res.success) {
+        setIsSubmittedSuccess(true);
+      } else {
+        setSubmitError(res.error || (language === 'id' ? 'Gagal mengirim pesanan. Silakan coba lagi.' : 'Failed to submit order. Please try again.'));
+      }
+    } catch (err: any) {
+      setSubmitError(err.message || (language === 'id' ? 'Terjadi kesalahan sistem.' : 'A system error occurred.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Navigation handlers
   const handleRequirementSelect = (req: LensRequirement) => {
@@ -289,7 +481,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
             </div>
 
             <button
-              onClick={onClose}
+              onClick={handleCloseDrawer}
               className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors"
               aria-label="Close customizer"
             >
@@ -297,7 +489,62 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
             </button>
           </div>
 
-          {/* Stepper Progress Bar */}
+          {isSubmittedSuccess ? (
+            /* Luxury Success Confirmation Screen */
+            <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center justify-center text-center space-y-6 animate-fadeIn">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm">
+                <CheckCircle2 size={36} />
+              </div>
+
+              <div className="space-y-2 max-w-md">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                  {t('lens_wizard.atelier', 'Custom Lens Atelier')}
+                </span>
+                <h3 className="editorial-title text-2xl uppercase tracking-tight text-neutral-900">
+                  {t('lens_wizard.order_success_title', 'Pesanan Custom Lensa Berhasil Terkirim')}
+                </h3>
+                <p className="text-xs text-neutral-600 leading-relaxed pt-1">
+                  {t('lens_wizard.order_success_desc', 'Terima kasih telah mempercayakan kacamata Anda kepada JEM LUIQA. Konsultan atelier kami akan segera menghubungi nomor WhatsApp Anda untuk konfirmasi pesanan dan proses pembuatan.')}
+                </p>
+              </div>
+
+              <div className="w-full max-w-sm p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-left space-y-2.5 text-xs">
+                <div className="flex justify-between border-b border-neutral-200/60 pb-2">
+                  <span className="text-neutral-500">Pemesan:</span>
+                  <span className="font-semibold text-neutral-900">{customerName}</span>
+                </div>
+                <div className="flex justify-between border-b border-neutral-200/60 pb-2">
+                  <span className="text-neutral-500">WhatsApp:</span>
+                  <span className="font-semibold text-neutral-900">{customerPhone}</span>
+                </div>
+                <div className="flex justify-between border-b border-neutral-200/60 pb-2">
+                  <span className="text-neutral-500">Frame:</span>
+                  <span className="font-semibold text-neutral-900">{product.name} ({variant?.color_name || 'Standard'})</span>
+                </div>
+                {selectedLens && (
+                  <div className="flex justify-between border-b border-neutral-200/60 pb-2">
+                    <span className="text-neutral-500">Lensa:</span>
+                    <span className="font-semibold text-neutral-900">{selectedLens.name}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1">
+                  <span className="text-neutral-500">Estimasi Total:</span>
+                  <span className="font-bold text-neutral-900">{priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : (language === 'id' ? 'Menunggu Konfirmasi' : 'To be confirmed')}</span>
+                </div>
+              </div>
+
+              <AnimatedButton
+                type="button"
+                variant="dark"
+                onClick={handleCloseDrawer}
+                className="w-full max-w-sm py-3.5 rounded-full font-semibold text-xs tracking-wider uppercase shadow-sm"
+              >
+                <span>{t('lens_wizard.close', 'Tutup')}</span>
+              </AnimatedButton>
+            </div>
+          ) : (
+            <>
+              {/* Stepper Progress Bar */}
           <div className="bg-neutral-50/80 px-6 py-3 border-b border-neutral-100 shrink-0">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
@@ -319,7 +566,11 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
           </div>
 
           {/* Interactive Step Content Area (Scrollable) */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-6 py-6 space-y-6"
+          >
             
             {/* STEP 1: LENS REQUIREMENT */}
             {currentStep === 1 && (
@@ -484,34 +735,161 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   </p>
                 </div>
 
-                {/* Alternative Quick Option: Unsure / Send Photo */}
-                <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
-                  <div className="flex items-start gap-2.5">
-                    <HelpCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-                        {t('lens_wizard.unsure_help_title', 'Need help reading your prescription?')}
-                      </h4>
-                      <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
-                        {t('lens_wizard.unsure_help_desc', 'Don’t worry! You can skip entering numbers manually and simply send a photo of your doctor’s prescription slip via WhatsApp.')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <label className="flex items-center gap-2 pt-1 text-xs font-semibold text-amber-950 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={prescription.unsure}
-                      onChange={(e) =>
-                        setPrescription((prev) => ({ ...prev, unsure: e.target.checked }))
-                      }
-                      className="rounded border-amber-300 text-neutral-900 focus:ring-neutral-900 h-4 w-4"
-                    />
-                    <span>{t('lens_wizard.unsure_checkbox', 'I’m not sure / I will send a photo of my prescription on WhatsApp')}</span>
-                  </label>
+                {/* Segmented Mode Selector: Manual Input vs Upload Doctor Slip */}
+                <div className="flex bg-neutral-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrescriptionMode('manual');
+                      setPrescription((p) => ({ ...p, unsure: false, prescription_mode: 'manual' }));
+                    }}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      prescriptionMode === 'manual'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-500 hover:text-neutral-800'
+                    }`}
+                  >
+                    {t('lens_wizard.tab_manual_prescription', 'Isi Manual Resep')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrescriptionMode('upload');
+                      setPrescription((p) => ({ ...p, unsure: true, prescription_mode: 'upload' }));
+                    }}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      prescriptionMode === 'upload'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-500 hover:text-neutral-800'
+                    }`}
+                  >
+                    {t('lens_wizard.tab_upload_prescription', 'Upload Foto / PDF Resep')}
+                  </button>
                 </div>
 
-                {!prescription.unsure && (
+                {/* Upload Mode Box */}
+                {prescriptionMode === 'upload' && (
+                  <div className="space-y-4 pt-1 animate-fadeIn">
+                    <div className="bg-neutral-50 p-6 rounded-2xl border-2 border-dashed border-neutral-300 text-center relative hover:border-neutral-400 transition-colors">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleFileUpload(f);
+                        }}
+                        className="hidden"
+                        id="prescription-file-upload"
+                      />
+
+                      {uploadedFileUrl ? (
+                        <div className="space-y-3">
+                          {uploadedFileName.toLowerCase().endsWith('.pdf') ? (
+                            <div className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-neutral-200 shadow-xs max-w-sm mx-auto">
+                              <div className="flex items-center gap-2.5 truncate">
+                                <FileText size={28} className="text-rose-600 shrink-0" />
+                                <div className="text-left truncate">
+                                  <span className="font-semibold text-xs text-neutral-900 block truncate max-w-[200px]">
+                                    {uploadedFileName}
+                                  </span>
+                                  <span className="text-[10px] text-neutral-400">PDF Document</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleRemoveUploadedFile}
+                                className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                title={t('lens_wizard.remove_file', 'Hapus File')}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="relative inline-block rounded-xl overflow-hidden border border-neutral-200 shadow-sm max-h-56">
+                                <img
+                                  src={uploadedFileUrl}
+                                  alt="Prescription preview"
+                                  className="max-h-56 w-auto object-contain"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveUploadedFile}
+                                  className="absolute top-2 right-2 bg-neutral-900/80 hover:bg-neutral-900 text-white p-1.5 rounded-full backdrop-blur-xs transition-colors shadow-xs"
+                                  title={t('lens_wizard.remove_file', 'Hapus File')}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p className="text-[11px] text-neutral-500 font-medium truncate max-w-xs mx-auto">
+                                {uploadedFileName}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold">
+                            <CheckCircle2 size={14} />
+                            <span>{t('lens_wizard.upload_success', 'File resep berhasil diunggah')}</span>
+                          </div>
+
+                          <label
+                            htmlFor="prescription-file-upload"
+                            className="inline-block text-[11px] font-semibold text-neutral-600 hover:text-neutral-900 underline cursor-pointer"
+                          >
+                            Ganti file resep
+                          </label>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="prescription-file-upload"
+                          className="cursor-pointer block py-4 space-y-2"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mx-auto text-neutral-600 shadow-2xs">
+                            {isUploadingFile ? (
+                              <Loader2 size={20} className="animate-spin text-neutral-900" />
+                            ) : (
+                              <Upload size={20} />
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-neutral-900 block">
+                              {isUploadingFile
+                                ? 'Sedang memproses file...'
+                                : t('lens_wizard.upload_drop_text', 'Tarik & lepas file di sini, atau klik untuk memilih file')}
+                            </span>
+                            <span className="text-[11px] text-neutral-400 mt-1 block">
+                              {t('lens_wizard.upload_prescription_desc', 'Ambil foto resep dokter atau pilih dokumen resep digital Anda (format JPG, PNG, WebP, PDF maks 10MB).')}
+                            </span>
+                          </div>
+                        </label>
+                      )}
+
+                      {uploadError && (
+                        <p className="text-xs text-rose-600 font-medium pt-2">{uploadError}</p>
+                      )}
+                    </div>
+
+                    {/* Notes for Uploaded Prescription */}
+                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
+                        Catatan Dokter / Keluhan Penglihatan (Opsional)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={prescription.notes || ''}
+                        onChange={(e) =>
+                          setPrescription((prev) => ({ ...prev, notes: e.target.value }))
+                        }
+                        placeholder="Contoh: Resep baru dari optik/dokter, mohon rekomendasi coating anti-silau..."
+                        className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 resize-none transition-all placeholder:text-neutral-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Diopters Mode */}
+                {prescriptionMode === 'manual' && (
                   <div className="space-y-5 pt-1">
                     {/* Right Eye (OD) */}
                     <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-3">
@@ -668,31 +1046,82 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                     </div>
 
                     {/* Pupillary Distance (PD) */}
-                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 flex items-center justify-between">
+                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 flex items-center justify-between gap-3">
                       <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
+                        <label className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
                           {t('lens_wizard.pd_title', 'Pupillary Distance (PD)')}
-                        </span>
-                        <span className="text-[11px] text-neutral-500">
-                          {t('lens_wizard.pd_desc', 'Distance between your pupils in millimeters (typically 58 - 66mm).')}
-                        </span>
+                        </label>
+                        <p className="text-[11px] text-neutral-500 mt-0.5">
+                          {t('lens_wizard.pd_desc', 'Jarak antara pupil mata kanan dan kiri dalam milimeter (contoh: 62 mm, atau R: 31 / L: 31).')}
+                        </p>
                       </div>
 
                       <div className="w-28 shrink-0">
-                        <select
+                        <textarea
+                          rows={1}
+                          maxLength={10}
                           value={prescription.pd}
                           onChange={(e) =>
-                            setPrescription((prev) => ({ ...prev, pd: e.target.value }))
+                            setPrescription((prev) => ({ ...prev, pd: e.target.value.slice(0, 10) }))
                           }
-                          className="w-full bg-white border border-neutral-300 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-neutral-900"
-                        >
-                          {PD_OPTIONS.map((val) => (
-                            <option key={val} value={val}>
-                              {val} mm
-                            </option>
-                          ))}
-                        </select>
+                          placeholder={t('lens_wizard.pd_placeholder', '62 mm')}
+                          className="w-full bg-white border border-neutral-300 rounded-lg px-2.5 py-2 text-xs font-semibold focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 resize-none transition-all placeholder:text-neutral-400 text-left h-[38px] overflow-hidden leading-tight"
+                        />
                       </div>
+                    </div>
+
+                    {/* ADD (Reading Addition) */}
+                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
+                            {t('lens_wizard.add_title', 'ADD (Reading Addition / Baca Dekat)')}
+                          </label>
+                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                            {t('lens_wizard.add_desc', 'Ukuran plus tambahan untuk membaca dekat (khusus lensa progresif / bifokal, opsional).')}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider bg-neutral-200/50 px-2 py-0.5 rounded shrink-0">
+                          {language === 'id' ? 'Opsional' : 'Optional'}
+                        </span>
+                      </div>
+
+                      <textarea
+                        rows={2}
+                        value={prescription.add || ''}
+                        onChange={(e) =>
+                          setPrescription((prev) => ({ ...prev, add: e.target.value }))
+                        }
+                        placeholder={t('lens_wizard.add_placeholder', 'Contoh: +1.50, Add +2.00 kedua mata, atau detail resep baca dekat...')}
+                        className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 resize-none transition-all placeholder:text-neutral-400"
+                      />
+                    </div>
+
+                    {/* CC (Chief Complaint & Catatan Khusus) */}
+                    <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
+                            {t('lens_wizard.cc_title', 'CC (Chief Complaint & Catatan Khusus)')}
+                          </label>
+                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                            {t('lens_wizard.cc_desc', 'Tuliskan keluhan penglihatan saat ini, kebiasaan kerja, atau catatan dokter khusus.')}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider bg-neutral-200/50 px-2 py-0.5 rounded shrink-0">
+                          {language === 'id' ? 'Opsional' : 'Optional'}
+                        </span>
+                      </div>
+
+                      <textarea
+                        rows={2}
+                        value={prescription.cc || ''}
+                        onChange={(e) =>
+                          setPrescription((prev) => ({ ...prev, cc: e.target.value }))
+                        }
+                        placeholder={t('lens_wizard.cc_placeholder', 'Contoh: Sering lelah saat menatap layar 8 jam, silau saat berkendara malam, dll...')}
+                        className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 resize-none transition-all placeholder:text-neutral-400"
+                      />
                     </div>
                   </div>
                 )}
@@ -903,10 +1332,26 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
                         {t('lens_wizard.prescription_specs', 'Prescription Specifications')}
                       </span>
-                      {prescription.unsure ? (
-                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-                          <HelpCircle size={14} className="shrink-0 text-amber-700" />
-                          <span>{t('lens_wizard.photo_verification_notice', 'Akan diverifikasi melalui foto resep via chat WhatsApp.')}</span>
+                      {prescriptionMode === 'upload' || uploadedFileName ? (
+                        <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 text-xs flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 truncate">
+                            {uploadedFileName.toLowerCase().endsWith('.pdf') ? (
+                              <FileText size={20} className="text-rose-600 shrink-0" />
+                            ) : (
+                              <Upload size={20} className="text-emerald-600 shrink-0" />
+                            )}
+                            <div className="truncate">
+                              <span className="font-semibold text-neutral-900 block truncate max-w-[200px]">
+                                {uploadedFileName || 'Dokumen Resep Terlampir'}
+                              </span>
+                              <span className="text-[10px] text-neutral-400">
+                                {prescription.notes ? `Catatan: ${prescription.notes}` : 'Resep dokter terlampir'}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
+                            Terlampir
+                          </span>
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-3 rounded-lg border border-neutral-200/70">
@@ -924,8 +1369,22 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                               {prescription.os.axis ? `| AXIS: ${prescription.os.axis}°` : ''}
                             </span>
                           </div>
-                          <div className="col-span-2 pt-1 border-t border-neutral-100 text-neutral-700">
-                            PD: <strong>{prescription.pd} mm</strong>
+                          <div className="col-span-2 pt-2 border-t border-neutral-100 space-y-1 text-neutral-700">
+                            {prescription.pd && (
+                              <div className="text-[11px]">
+                                <span className="text-neutral-500">PD:</span> <strong>{prescription.pd}</strong>
+                              </div>
+                            )}
+                            {prescription.add && (
+                              <div className="text-[11px]">
+                                <span className="text-neutral-500">ADD:</span> <strong>{prescription.add}</strong>
+                              </div>
+                            )}
+                            {prescription.cc && (
+                              <div className="text-[11px]">
+                                <span className="text-neutral-500">CC:</span> <span className="font-medium text-neutral-800">{prescription.cc}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -963,7 +1422,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   )}
 
                   {/* Total Estimated Price */}
-                  <div className="flex items-baseline justify-between pt-1">
+                  <div className="flex items-baseline justify-between pt-1 pb-2">
                     <div>
                       <span className="text-xs uppercase font-bold tracking-wider text-neutral-500 block">
                         {t('lens_wizard.estimated_total', 'Estimated Total')}
@@ -976,24 +1435,109 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       {priceBreakdown.canCalculate ? priceBreakdown.totalFormatted : (language === 'id' ? 'Harga akan dikonfirmasi' : 'Price to be confirmed')}
                     </span>
                   </div>
-                </div>
 
-                {/* Consultation & Assurance Callout */}
-                <div className="p-4 rounded-xl bg-neutral-900 text-white flex items-start gap-3 shadow-sm">
-                  <MessageCircle size={20} className="text-emerald-400 shrink-0 mt-0.5" />
-                  <div className="text-xs leading-relaxed space-y-1">
-                    <p className="font-semibold text-white">
-                      {t('lens_wizard.concierge_title', 'Order via JEM LUIQA Concierge')}
-                    </p>
-                    <p className="text-neutral-300 text-[11px]">
-                      {t('lens_wizard.concierge_desc')}
-                    </p>
+                  {/* Client Contact Details Form */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-3">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+                        {t('lens_wizard.contact_info_title', 'Data Pemesan')}
+                      </h4>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        {t('lens_wizard.contact_info_desc', 'Tim atelier optik kami akan menghubungi Anda melalui WhatsApp untuk konfirmasi pesanan.')}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                          {t('lens_wizard.customer_name', 'Nama Lengkap')} <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder={t('lens_wizard.customer_name_placeholder', 'Masukkan nama Anda...')}
+                          className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all placeholder:text-neutral-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                          {t('lens_wizard.customer_phone', 'No. WhatsApp (Aktif)')} <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          placeholder={t('lens_wizard.customer_phone_placeholder', 'Contoh: 081234567890')}
+                          className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all placeholder:text-neutral-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                          {t('lens_wizard.customer_email', 'Email (Opsional)')}
+                        </label>
+                        <input
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          placeholder={t('lens_wizard.customer_email_placeholder', 'nama@email.com')}
+                          className="w-full bg-white border border-neutral-300 rounded-lg p-2.5 text-xs font-medium focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all placeholder:text-neutral-400"
+                        />
+                      </div>
+                    </div>
+
+                    {submitError && (
+                      <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                        {submitError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Consultation & Assurance Callout */}
+                  <div className="p-4 rounded-xl bg-neutral-900 text-white flex items-start gap-3 shadow-sm">
+                    <MessageCircle size={20} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="text-xs leading-relaxed space-y-1">
+                      <p className="font-semibold text-white">
+                        {t('lens_wizard.concierge_title', 'Konfirmasi Concierge JEM LUIQA')}
+                      </p>
+                      <p className="text-neutral-300 text-[11px]">
+                        {t('lens_wizard.concierge_desc')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
           </div>
+
+          {/* Floating Scroll Down Indicator (Prescription Step 3) */}
+          <AnimatePresence>
+            {!isNonPrescription && currentStep === 3 && prescriptionMode === 'manual' && showScrollIndicator && (
+              <div className="absolute bottom-[86px] inset-x-0 flex justify-center z-20 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="pointer-events-auto"
+                >
+                  <button
+                    type="button"
+                    onClick={handleScrollDownClick}
+                    className="bg-white/95 hover:bg-neutral-50 backdrop-blur-md text-neutral-900 text-[11px] font-semibold px-4 py-1.5 rounded-full shadow-md border border-neutral-200/80 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 group cursor-pointer"
+                  >
+                    <span>{language === 'id' ? 'Scroll ke bawah' : 'Scroll down'}</span>
+                    <ChevronDown size={13} className="text-neutral-700 group-hover:translate-y-0.5 transition-transform duration-200" />
+                  </button>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* Bottom Navigation & CTA Actions */}
           <div className="px-6 py-4 border-t border-neutral-100 bg-white flex items-center justify-between gap-3 shrink-0">
@@ -1016,25 +1560,39 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                 type="button"
                 variant="dark"
                 onClick={handleNext}
-                disabled={currentStep === 1 && !requirement}
-                className="ml-auto px-6 py-3 rounded-full font-semibold text-xs tracking-wider uppercase"
+                disabled={
+                  (currentStep === 1 && !requirement) ||
+                  (!isNonPrescription && currentStep === 3 && prescriptionMode === 'upload' && !uploadedFileUrl)
+                }
+                className="ml-auto px-6 py-3 rounded-full font-semibold text-xs tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>{t('lens_wizard.continue', 'Continue')}</span>
                 <ArrowRight size={14} />
               </AnimatedButton>
             ) : (
               <AnimatedButton
-                href={whatsappOrderUrl}
-                target="_blank"
-                rel="noreferrer"
-                variant="emerald"
-                className="ml-auto flex-1 max-w-xs py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase shadow-md"
+                type="button"
+                variant="dark"
+                onClick={handleSubmitOrder}
+                disabled={!customerName.trim() || !customerPhone.trim() || isSubmitting}
+                className="ml-auto flex-1 max-w-xs py-3.5 px-6 rounded-full font-semibold text-xs tracking-wider uppercase shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <MessageCircle size={16} />
-                <span>{t('lens_wizard.continue_wa', 'Continue on WhatsApp')}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>{t('lens_wizard.submitting_order', 'Mengirim Pesanan...')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    <span>{t('lens_wizard.submit_order', 'Kirim Pesanan Custom Lensa')}</span>
+                  </>
+                )}
               </AnimatedButton>
             )}
           </div>
+        </>
+      )}
         </motion.div>
       </div>
     </AnimatePresence>

@@ -10,15 +10,19 @@ import {
   ArrowRight,
   ExternalLink,
   BookOpen,
+  ShieldCheck,
 } from 'lucide-react';
 import { PageHeader } from '../../components/admin/PageHeader';
 import { StatusBadge } from '../../components/admin/StatusBadge';
+import { AuditActionBadge } from '../../components/admin/AuditActionBadge';
 import { useProductStore } from '../../store/useProductStore';
 import { useCampaignStore } from '../../store/useCampaignStore';
 import { useLensStore } from '../../store/useLensStore';
 import { usePromotionStore } from '../../store/usePromotionStore';
 import { useInquiryStore } from '../../store/useInquiryStore';
 import { useLookbookStore } from '../../store/useLookbookStore';
+import { useAuditLogStore } from '../../store/useAuditLogStore';
+import { AuditLogEntry } from '../../types/database';
 
 export const AdminDashboardPage: React.FC = () => {
   const { products, loadInitialData } = useProductStore();
@@ -27,6 +31,7 @@ export const AdminDashboardPage: React.FC = () => {
   const { promotions, loadPromotions } = usePromotionStore();
   const { inquiries, loadInquiries } = useInquiryStore();
   const { collections, loadLookbook } = useLookbookStore();
+  const { recentActivities, fetchRecentActivities, isLoadingRecent } = useAuditLogStore();
 
   useEffect(() => {
     loadInitialData();
@@ -35,7 +40,8 @@ export const AdminDashboardPage: React.FC = () => {
     loadPromotions();
     loadInquiries();
     loadLookbook();
-  }, [loadInitialData, loadCampaigns, loadLenses, loadPromotions, loadInquiries, loadLookbook]);
+    fetchRecentActivities(6);
+  }, [loadInitialData, loadCampaigns, loadLenses, loadPromotions, loadInquiries, loadLookbook, fetchRecentActivities]);
 
   const totalProducts = products.length;
   const publishedProducts = products.filter((p) => p.published).length;
@@ -55,6 +61,37 @@ export const AdminDashboardPage: React.FC = () => {
     { label: 'New Inquiries', value: newInquiries, sub: `${inquiries.length} total messages`, icon: MessageSquare, to: '/admin/inquiries', highlight: newInquiries > 0 },
     { label: 'Lookbook Collections', value: collections.length, sub: 'Editorial campaigns', icon: BookOpen, to: '/admin/lookbook' },
   ];
+
+  const formatRelativeTime = (isoDate: string): string => {
+    const diff = Date.now() - new Date(isoDate).getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(isoDate).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
+  };
+
+  const getChangeSnippet = (item: AuditLogEntry): string | null => {
+    if (item.action === 'CREATE') return 'New resource created';
+    if (item.action === 'DELETE') return 'Resource deleted';
+    if (!item.before_data || !item.after_data) return null;
+    const changes: string[] = [];
+    for (const k of Object.keys(item.after_data)) {
+      if (k === 'updated_at' || k === 'created_at') continue;
+      const b = item.before_data[k];
+      const a = item.after_data[k];
+      if (JSON.stringify(b) !== JSON.stringify(a)) {
+        const fieldLabel = k.replace(/_/g, ' ');
+        const bStr = typeof b === 'boolean' ? (b ? 'Yes' : 'No') : String(b ?? 'none');
+        const aStr = typeof a === 'boolean' ? (a ? 'Yes' : 'No') : String(a ?? 'none');
+        changes.push(`${fieldLabel}: ${bStr} → ${aStr}`);
+      }
+    }
+    return changes.length > 0 ? changes.slice(0, 2).join(' • ') : null;
+  };
 
   return (
     <div className="space-y-8">
@@ -264,6 +301,84 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Recent Security & Activity Section */}
+      <div className="bg-white rounded-xl border border-neutral-200 shadow-2xs overflow-hidden">
+        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-neutral-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+              <ShieldCheck size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900">
+                Recent Security & Operations Activity
+              </h3>
+              <p className="text-[11px] text-neutral-400">
+                Latest mutations performed by authenticated admins
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/admin/activity"
+            className="text-xs font-semibold text-neutral-700 hover:text-black inline-flex items-center gap-1"
+          >
+            <span>View All Activity</span>
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        {isLoadingRecent ? (
+          <div className="p-8 text-center text-neutral-400 text-xs">
+            Loading recent activity...
+          </div>
+        ) : recentActivities.length === 0 ? (
+          <div className="p-8 text-center text-neutral-400 text-xs">
+            No admin activity logged yet. Modifications to products, campaigns, and settings will appear here.
+          </div>
+        ) : (
+          <div className="divide-y divide-neutral-100 text-xs">
+            {recentActivities.map((act) => {
+              const snippet = getChangeSnippet(act);
+              return (
+                <Link
+                  key={act.id}
+                  to="/admin/activity"
+                  className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-neutral-50/70 transition-colors block"
+                >
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    <AuditActionBadge action={act.action} size="sm" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-neutral-900 truncate">
+                          {act.entity_label || act.entity_id || act.entity_type}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
+                          [{act.entity_type}]
+                        </span>
+                      </div>
+                      {snippet && (
+                        <p className="text-[11px] text-neutral-500 font-mono mt-0.5 truncate">
+                          {snippet}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 text-[11px] text-neutral-500">
+                    <span className="truncate max-w-[180px] font-medium text-neutral-700">
+                      {act.actor_email || 'system'}
+                    </span>
+                    <span className="text-neutral-400 whitespace-nowrap font-mono text-[10px]">
+                      {formatRelativeTime(act.created_at)}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+

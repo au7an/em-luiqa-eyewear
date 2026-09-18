@@ -16,7 +16,7 @@ export const AdminLayout: React.FC = () => {
       </div>
 
       {/* Mobile Top Header */}
-      <header className="lg:hidden bg-neutral-900 text-white px-4 py-3 flex items-center justify-between border-b border-neutral-800 sticky top-0 z-30 shadow-sm">
+      <header className="no-print print:hidden lg:hidden bg-neutral-900 text-white px-4 py-3 flex items-center justify-between border-b border-neutral-800 sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileOpen(true)}
@@ -72,7 +72,9 @@ export const AdminLayout: React.FC = () => {
       </main>
 
       {/* Global Toast Feedback */}
-      <ToastContainer />
+      <div id="toast-container-wrapper" className="no-print print:hidden" data-toast-container>
+        <ToastContainer />
+      </div>
     </div>
   );
 };

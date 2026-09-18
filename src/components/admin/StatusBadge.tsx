@@ -13,6 +13,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'sm' })
     case 'Published':
     case 'Active':
     case 'Available':
+    case 'Completed':
       style = 'bg-emerald-50 text-emerald-700 border-emerald-200';
       break;
     case 'Draft':
@@ -22,13 +23,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'sm' })
       break;
     case 'Low Stock':
     case 'Read':
+    case 'In Production':
       style = 'bg-amber-50 text-amber-700 border-amber-200';
       break;
     case 'Sold Out':
+    case 'Canceled':
       style = 'bg-rose-50 text-rose-700 border-rose-200';
       break;
     case 'Coming Soon':
     case 'Replied':
+    case 'Contacted':
       style = 'bg-blue-50 text-blue-700 border-blue-200';
       break;
     case 'New':

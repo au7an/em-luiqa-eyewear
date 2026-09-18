@@ -191,8 +191,13 @@ export interface PrescriptionData {
   od: PrescriptionEye;
   os: PrescriptionEye;
   pd: string;
+  add?: string; // Reading addition for near vision (Bifocal/Progressive/Reading)
+  cc?: string; // Chief Complaint / Catatan Khusus
   unsure: boolean; // "I'm not sure / need help reading prescription"
   notes?: string;
+  prescription_mode?: 'manual' | 'upload';
+  prescription_file_url?: string;
+  prescription_file_name?: string;
 }
 
 export interface CustomLensSelection {
@@ -248,16 +253,25 @@ export interface LookbookCollection {
   updated_at?: string;
 }
 
-export type InquiryStatus = 'New' | 'Read' | 'Replied' | 'Closed';
+export type InquiryStatus = 'New' | 'Contacted' | 'In Production' | 'Completed' | 'Canceled' | 'Read' | 'Replied' | 'Closed';
 
 export interface ContactInquiry {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   subject?: string;
   message: string;
   status: InquiryStatus;
+  product_id?: string;
+  product_name?: string;
+  variant_name?: string;
+  variant_sku?: string;
+  variant_color_hex?: string;
+  prescription_file_url?: string;
+  prescription_file_name?: string;
+  custom_lens_data?: CustomLensSelection;
+  total_price?: string;
   created_at: string;
 }
 
@@ -297,5 +311,55 @@ export interface HomeSectionConfig {
 export interface HomepageLayoutSettings {
   hero_enabled: boolean;
   sections: HomeSectionConfig[];
+}
+
+// ------------------------------------------------------------------------------
+// 9. SECURITY AUDIT LOGS
+// ------------------------------------------------------------------------------
+export type AuditAction =
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'PUBLISH'
+  | 'UNPUBLISH'
+  | 'ACTIVATE'
+  | 'DEACTIVATE';
+
+export type AuditEntityType =
+  | 'products'
+  | 'product_variants'
+  | 'product_images'
+  | 'campaigns'
+  | 'lens_services'
+  | 'promotions'
+  | 'lookbook_collections'
+  | 'lookbook_media'
+  | 'site_settings'
+  | string;
+
+export interface AuditLogEntry {
+  id: string;
+  actor_user_id?: string | null;
+  actor_email?: string | null;
+  action: AuditAction | string;
+  entity_type: AuditEntityType;
+  entity_id?: string | null;
+  entity_label?: string | null;
+  before_data?: Record<string, any> | null;
+  after_data?: Record<string, any> | null;
+  metadata?: Record<string, any> | null;
+  created_at: string;
+}
+
+export type AuditDateRangePreset = 'all' | 'today' | '7days' | '30days' | 'custom';
+
+export interface AuditLogFilters {
+  dateRange: AuditDateRangePreset;
+  startDate?: string;
+  endDate?: string;
+  action: string;
+  entityType: string;
+  userEmail: string;
+  searchQuery: string;
 }
 

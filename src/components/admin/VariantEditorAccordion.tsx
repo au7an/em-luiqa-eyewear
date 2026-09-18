@@ -42,6 +42,7 @@ export const VariantEditorAccordion: React.FC<VariantEditorAccordionProps> = ({
   const handleAddVariant = () => {
     const newIndex = variants.length + 1;
     const newId = generateUUID();
+    const nowIso = new Date().toISOString();
     const newVariant: ProductVariant = {
       id: newId,
       product_id: productId || 'new',
@@ -53,6 +54,8 @@ export const VariantEditorAccordion: React.FC<VariantEditorAccordionProps> = ({
       is_default: variants.length === 0,
       sort_order: newIndex,
       images: [],
+      created_at: nowIso,
+      updated_at: nowIso,
     };
 
     const updated = [...variants, newVariant];

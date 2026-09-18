@@ -65,3 +65,47 @@
     letter-spacing: -0.02em;
   }
 }
+
+@media print {
+  /* Absolute Print Isolation: hide all website elements */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Make only the designated printable sheet visible */
+  #printable-order-sheet,
+  #printable-order-sheet * {
+    visibility: visible !important;
+  }
+
+  #printable-order-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely suppress any non-printable elements */
+  header,
+  nav,
+  aside,
+  .no-print,
+  .print-hidden,
+  [data-toast-container],
+  #toast-container {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+}

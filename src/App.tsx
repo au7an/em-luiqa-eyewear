@@ -36,6 +36,7 @@ import { AdminLookbookEditorPage } from './pages/admin/AdminLookbookEditorPage';
 import { AdminInquiriesPage } from './pages/admin/AdminInquiriesPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminHomepageLayoutPage } from './pages/admin/AdminHomepageLayoutPage';
+import { AdminActivityPage } from './pages/admin/AdminActivityPage';
 
 // Stores
 import { useProductStore } from './store/useProductStore';
@@ -121,6 +122,7 @@ export function App() {
           <Route path="lookbook/new" element={<AdminLookbookEditorPage />} />
           <Route path="lookbook/:id" element={<AdminLookbookEditorPage />} />
           <Route path="inquiries" element={<AdminInquiriesPage />} />
+          <Route path="activity" element={<AdminActivityPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 

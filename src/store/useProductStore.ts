@@ -726,9 +726,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
       // 1. Insert Variants
       if (resolvedVariants.length > 0) {
+        const nowIso = new Date().toISOString();
         const variantPayload = resolvedVariants.map((v) => {
           const { images: _vImgs, ...cleanV } = v;
-          return { ...cleanV, product_id: insertedProduct.id };
+          return {
+            ...cleanV,
+            product_id: insertedProduct.id,
+            created_at: cleanV.created_at || nowIso,
+            updated_at: cleanV.updated_at || nowIso,
+          };
         });
         const { error: insVarErr } = await supabase.from('product_variants').insert(variantPayload);
         if (insVarErr) {
@@ -858,55 +864,96 @@ export const useProductStore = create<ProductState>((set, get) => ({
         }
       }
 
-      // Variants update
+      // Variants update (Smart Upsert: only delete removed variants, upsert existing/new)
       if (variants !== undefined) {
-        await supabase.from('product_variants').delete().eq('product_id', id);
+        const { data: existingDbVariants } = await supabase
+          .from('product_variants')
+          .select('id')
+          .eq('product_id', id);
+
+        const currentDbIds = (existingDbVariants || []).map((v: any) => v.id);
+        const incomingIds = (sanitizedVariants || []).map((v) => v.id);
+
+        // 1. Delete only variants that were removed in the editor
+        const toDeleteIds = currentDbIds.filter((dbId: string) => !incomingIds.includes(dbId));
+        if (toDeleteIds.length > 0) {
+          await supabase.from('product_variants').delete().in('id', toDeleteIds);
+        }
+
+        // 2. Upsert remaining or newly added variants
         if (sanitizedVariants && sanitizedVariants.length > 0) {
+          const nowIso = new Date().toISOString();
           const variantPayload = sanitizedVariants.map((v) => {
             const { images: _vImgs, ...cleanV } = v;
-            return { ...cleanV, product_id: id };
+            return {
+              ...cleanV,
+              product_id: id,
+              created_at: cleanV.created_at || nowIso,
+              updated_at: nowIso,
+            };
           });
-          const { error: insVarErr } = await supabase.from('product_variants').insert(variantPayload);
-          if (insVarErr) {
-            console.error('Failed to insert product variants in Supabase:', insVarErr);
-            throw insVarErr;
+
+          const { error: upsertVarErr } = await supabase
+            .from('product_variants')
+            .upsert(variantPayload, { onConflict: 'id' });
+
+          if (upsertVarErr) {
+            console.error('Failed to upsert product variants in Supabase:', upsertVarErr);
+            throw upsertVarErr;
           }
 
-          // Re-insert variant images
-          const variantImagesPayload: any[] = [];
-          sanitizedVariants.forEach((v) => {
-            (v.images || []).forEach((img, idx) => {
-              variantImagesPayload.push({
-                product_id: id,
-                variant_id: v.id,
-                image_url: img.image_url,
-                alt_text: img.alt_text || `${existing.name} - ${v.color_name}`,
-                image_type: img.image_type || 'Primary',
-                sort_order: img.sort_order ?? idx + 1,
-              });
-            });
-          });
-          if (variantImagesPayload.length > 0) {
-            const { error: insImgErr } = await supabase.from('product_images').insert(variantImagesPayload);
-            if (insImgErr) {
-              console.warn('Failed to insert variant images in Supabase:', insImgErr);
+          // 3. Sync variant images only if URLs actually changed
+          for (const v of sanitizedVariants) {
+            const incomingImgs = v.images || [];
+            const { data: dbImgs } = await supabase
+              .from('product_images')
+              .select('id, image_url')
+              .eq('variant_id', v.id);
+
+            const dbUrls = (dbImgs || []).map((i: any) => i.image_url).sort().join(',');
+            const newUrls = incomingImgs.map((i) => i.image_url).sort().join(',');
+
+            if (dbUrls !== newUrls) {
+              await supabase.from('product_images').delete().eq('variant_id', v.id);
+              if (incomingImgs.length > 0) {
+                const variantImgsPayload = incomingImgs.map((img, idx) => ({
+                  product_id: id,
+                  variant_id: v.id,
+                  image_url: img.image_url,
+                  alt_text: img.alt_text || `${existing.name} - ${v.color_name}`,
+                  image_type: img.image_type || 'Primary',
+                  sort_order: img.sort_order ?? idx + 1,
+                }));
+                await supabase.from('product_images').insert(variantImgsPayload);
+              }
             }
           }
         }
       }
 
-      // Base images update
+      // Base images update: only sync if image URLs actually changed
       if (images !== undefined) {
-        await supabase.from('product_images').delete().eq('product_id', id).is('variant_id', null);
-        if (images.length > 0) {
-          const imgPayload = images.map((img, idx) => ({
-            product_id: id,
-            image_url: img.image_url,
-            alt_text: img.alt_text || existing.name,
-            image_type: img.image_type || 'Primary',
-            sort_order: img.sort_order ?? idx + 1,
-          }));
-          await supabase.from('product_images').insert(imgPayload);
+        const { data: dbBaseImages } = await supabase
+          .from('product_images')
+          .select('id, image_url')
+          .eq('product_id', id)
+          .is('variant_id', null);
+
+        const currentBaseUrls = (dbBaseImages || []).map((i: any) => i.image_url).sort().join(',');
+        const newBaseUrls = (images || []).map((i) => i.image_url).sort().join(',');
+
+        if (currentBaseUrls !== newBaseUrls) {
+          await supabase.from('product_images').delete().eq('product_id', id).is('variant_id', null);
+          if (images.length > 0) {
+            const imgPayload = images.map((img, idx) => ({
+              product_id: id,
+              image_url: img.image_url,
+              alt_text: img.alt_text || existing.name,
+              image_type: img.image_type || 'Primary',
+              sort_order: img.sort_order ?? idx + 1,
+            }));
+            await supabase.from('product_images').insert(imgPayload);
+          }
         }
       }
 

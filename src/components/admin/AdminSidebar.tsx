@@ -13,6 +13,7 @@ import {
   ExternalLink,
   X,
   LayoutTemplate,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInquiryStore } from '../../store/useInquiryStore';
@@ -48,6 +49,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
       icon: MessageSquare,
       badge: newInquiriesCount > 0 ? newInquiriesCount : undefined,
     },
+    { label: t('admin.activity', 'Activity'), path: '/admin/activity', icon: ShieldCheck },
     { label: t('admin.settings', 'Settings'), path: '/admin/settings', icon: Settings },
   ];
 

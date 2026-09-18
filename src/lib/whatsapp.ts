@@ -84,11 +84,17 @@ export function generateCustomLensOrderWALink({
     if (selection.prescription?.unsure) {
       msg += `Detail Resep:\n(Saya butuh bantuan baca resep / akan verifikasi melalui foto resep via chat ini)\n`;
     } else if (selection.prescription) {
-      const { od, os, pd } = selection.prescription;
+      const { od, os, pd, add, cc } = selection.prescription;
       msg += `Mata Kanan / OD:\n• SPH: ${od.sph || '0.00'}\n• CYL: ${od.cyl || '0.00'}\n• AXIS: ${od.axis ? `${od.axis}°` : '-'}\n\n`;
       msg += `Mata Kiri / OS:\n• SPH: ${os.sph || '0.00'}\n• CYL: ${os.cyl || '0.00'}\n• AXIS: ${os.axis ? `${os.axis}°` : '-'}\n\n`;
-      if (pd) {
-        msg += `PD (Pupillary Distance): ${pd} mm\n`;
+      if (pd && pd.trim()) {
+        msg += `• PD (Pupillary Distance): ${pd.trim()}\n`;
+      }
+      if (add && add.trim()) {
+        msg += `• ADD (Reading Addition): ${add.trim()}\n`;
+      }
+      if (cc && cc.trim()) {
+        msg += `• CC (Catatan Khusus / Keluhan): ${cc.trim()}\n`;
       }
     }
   }

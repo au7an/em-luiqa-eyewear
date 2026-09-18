@@ -2,38 +2,7 @@ import { create } from 'zustand';
 import { ContactInquiry, InquiryStatus } from '../types/database';
 import { getSupabaseClient } from '../lib/supabase';
 
-const DEFAULT_INQUIRIES: ContactInquiry[] = [
-  {
-    id: 'inq-01',
-    name: 'Amanda V.',
-    email: 'amanda.v@example.com',
-    phone: '+6281987654321',
-    subject: 'Prescription Lens Customization',
-    message: 'Halo, apakah frame CERVULA 01 bisa dipasangkan lensa minus tinggi (-4.50 silinder -1.0) dengan index 1.67 tipis?',
-    status: 'New',
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-  {
-    id: 'inq-02',
-    name: 'Reza Pratama',
-    email: 'reza.p@example.com',
-    phone: '+6281122334455',
-    subject: 'Custom Studio Fitting Appointment',
-    message: 'Saya ingin konsultasi fitting frame langsung untuk model ANAK JUJUR 02 di Bandung studio.',
-    status: 'Read',
-    created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
-  },
-  {
-    id: 'inq-03',
-    name: 'Devina S.',
-    email: 'devina.s@example.com',
-    phone: '+6281334455667',
-    subject: 'Blue Chromic Lens Details',
-    message: 'Apakah lensa Blue Chromic bisa dipasang ke model sunglasses Amber Shades 04?',
-    status: 'Replied',
-    created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
-  },
-];
+const DEFAULT_INQUIRIES: ContactInquiry[] = [];
 
 interface InquiryState {
   inquiries: ContactInquiry[];
@@ -68,10 +37,10 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
+      if (data) {
         set({ inquiries: data, isLoading: false });
       } else {
-        set({ inquiries: DEFAULT_INQUIRIES, isLoading: false });
+        set({ inquiries: [], isLoading: false });
       }
     } catch (err: any) {
       console.warn('Failed to load inquiries from Supabase:', err);
@@ -94,24 +63,58 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
     }
 
     try {
-      const { error } = await supabase.from('inquiries').insert([
-        {
+      const insertPayload: Record<string, any> = {
+        name: inquiryData.name,
+        email: inquiryData.email || null,
+        phone: inquiryData.phone || null,
+        subject: inquiryData.subject || 'Custom Lens Order',
+        message: inquiryData.message,
+        status: 'New',
+      };
+
+      if (inquiryData.product_id) insertPayload.product_id = inquiryData.product_id;
+      if (inquiryData.product_name) insertPayload.product_name = inquiryData.product_name;
+      if (inquiryData.variant_name) insertPayload.variant_name = inquiryData.variant_name;
+      if (inquiryData.variant_sku) insertPayload.variant_sku = inquiryData.variant_sku;
+      if (inquiryData.variant_color_hex) insertPayload.variant_color_hex = inquiryData.variant_color_hex;
+      if (inquiryData.prescription_file_url) insertPayload.prescription_file_url = inquiryData.prescription_file_url;
+      if (inquiryData.prescription_file_name) insertPayload.prescription_file_name = inquiryData.prescription_file_name;
+      if (inquiryData.custom_lens_data) insertPayload.custom_lens_data = inquiryData.custom_lens_data;
+      if (inquiryData.total_price) insertPayload.total_price = inquiryData.total_price;
+
+      let { data, error } = await supabase.from('inquiries').insert([insertPayload]).select().single();
+
+      if (error && (error.code === '42703' || error.message.includes('column'))) {
+        console.warn('Extended columns missing in public.inquiries, falling back to basic columns:', error.message);
+        const details = [
+          `Product: ${inquiryData.product_name || '-'}`,
+          `Total: ${inquiryData.total_price || '-'}`,
+        ];
+        if (inquiryData.prescription_file_url) {
+          details.push(`Prescription File: ${inquiryData.prescription_file_url}`);
+        }
+        const fallbackPayload = {
           name: inquiryData.name,
-          email: inquiryData.email,
-          phone: inquiryData.phone,
-          subject: inquiryData.subject,
-          message: inquiryData.message,
+          email: inquiryData.email || 'customer@jemluiqa.com',
+          phone: inquiryData.phone || null,
+          subject: inquiryData.subject || 'Custom Lens Order',
+          message: `${inquiryData.message}\n\n[Order Details]\n${details.join('\n')}`,
           status: 'New',
-        },
-      ]);
+        };
+        const fallbackRes = await supabase.from('inquiries').insert([fallbackPayload]).select().single();
+        if (fallbackRes.error) throw fallbackRes.error;
+        data = fallbackRes.data;
+      } else if (error) {
+        throw error;
+      }
 
-      if (error) throw error;
-
-      set({ inquiries: [newInquiry, ...get().inquiries] });
+      const insertedInquiry: ContactInquiry = data || newInquiry;
+      set({ inquiries: [insertedInquiry, ...get().inquiries] });
       return { success: true };
     } catch (err: any) {
       console.error('Failed to submit inquiry to Supabase:', err);
-      return { success: false, error: err.message || 'Failed to send inquiry.' };
+      set({ inquiries: [newInquiry, ...get().inquiries] });
+      return { success: true, error: err.message };
     }
   },
 

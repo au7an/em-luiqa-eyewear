@@ -115,6 +115,8 @@ export const AdminProductEditorPage: React.FC = () => {
       is_default: true,
       sort_order: 1,
       images: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ]);
 
