@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Star, Loader2, Video } from 'lucide-react';
 import { uploadMediaToStorage, StorageBucket } from '../../lib/storage';
+import { compressImage } from '../../lib/imageCompressor';
 import { ProductImage, ProductImageType } from '../../types/database';
 import { useToast } from './Toast';
 
@@ -47,7 +48,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     const newUploaded: ProductImage[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      let file = files[i];
+
+      // Automatically compress images before upload to storage
+      if (!file.type.startsWith('video/')) {
+        try {
+          file = await compressImage(file, {
+            maxDimension: 1920,
+            quality: 0.85,
+            targetType: 'image/webp',
+          });
+        } catch (compressErr) {
+          console.warn(`Compression skipped for ${file.name}:`, compressErr);
+        }
+      }
+
       const res = await uploadMediaToStorage({
         bucket,
         file,
@@ -137,7 +152,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           ref={fileInputRef}
           type="file"
           multiple={maxFiles > 1}
-          accept={acceptVideo ? 'image/*,video/mp4,video/webm' : 'image/*'}
+          accept={acceptVideo ? 'image/*,.heic,.heif,video/mp4,video/webm' : 'image/*,.heic,.heif'}
           onChange={(e) => handleFiles(e.target.files)}
           className="hidden"
           disabled={isUploading}
@@ -154,12 +169,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
           <div>
             <span className="text-xs font-semibold text-neutral-900">
-              {isUploading ? 'Uploading files to storage...' : 'Click to upload or drag & drop'}
+              {isUploading ? 'Memproses & mengunggah media...' : 'Click to upload or drag & drop'}
             </span>
             <p className="text-[11px] text-neutral-400 mt-0.5 font-light">
               {acceptVideo
-                ? 'PNG, JPG, WebP up to 15MB or MP4 up to 50MB'
-                : 'PNG, JPG, WebP, GIF up to 15MB'}
+                ? 'PNG, JPG, WebP, HEIC (otomatis dikompres) atau MP4 video'
+                : 'PNG, JPG, WebP, HEIC (otomatis dikompres ke WebP hingga 15MB)'}
             </p>
           </div>
         </div>

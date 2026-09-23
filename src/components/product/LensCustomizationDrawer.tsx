@@ -25,6 +25,7 @@ import { useLensStore } from '../../store/useLensStore';
 import { useLanguageStore } from '../../store/useLanguageStore';
 import { useInquiryStore } from '../../store/useInquiryStore';
 import { uploadMediaToStorage } from '../../lib/storage';
+import { validatePrescriptionFile, compressImage } from '../../lib/imageCompressor';
 import { parsePriceToNumber, formatRupiahDisplay } from '../../lib/currency';
 import { AnimatedButton } from '../common/AnimatedButton';
 
@@ -254,8 +255,11 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
 
   // File upload handler
   const handleFileUpload = async (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError(language === 'id' ? 'Ukuran file maksimal 10MB.' : 'File size must be under 10MB.');
+    // 1. Validate file: must be image (jpg, jpeg, png, webp, heic) and <= 5MB
+    const validation = validatePrescriptionFile(file, language);
+    if (!validation.valid) {
+      setUploadError(validation.error || 'File tidak valid.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -263,15 +267,23 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
     setUploadError(null);
     setUploadedFileName(file.name);
 
-    const localUrl = URL.createObjectURL(file);
-    setUploadedFileUrl(localUrl);
-
     try {
+      // 2. Compress image to optimized WebP (max 1600px, quality 0.82)
+      const compressedFile = await compressImage(file, {
+        maxDimension: 1600,
+        quality: 0.82,
+        targetType: 'image/webp',
+      });
+
+      const localUrl = URL.createObjectURL(compressedFile);
+      setUploadedFileUrl(localUrl);
+
+      // 3. Upload to storage
       const res = await uploadMediaToStorage({
         bucket: 'products',
-        file,
+        file: compressedFile,
         folder: 'prescriptions',
-        maxSizeMB: 10,
+        maxSizeMB: 5,
       });
 
       if (res.url) {
@@ -280,10 +292,28 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
           ...p,
           prescription_mode: 'upload',
           prescription_file_url: res.url,
-          prescription_file_name: file.name,
+          prescription_file_name: compressedFile.name,
           unsure: true,
         }));
       } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = reader.result as string;
+          setUploadedFileUrl(b64);
+          setPrescription((p) => ({
+            ...p,
+            prescription_mode: 'upload',
+            prescription_file_url: b64,
+            prescription_file_name: compressedFile.name,
+            unsure: true,
+          }));
+        };
+        reader.readAsDataURL(compressedFile);
+      }
+    } catch (err: any) {
+      console.error('Prescription compression/upload exception:', err);
+      // Fallback: try reading as data URL if storage upload failed
+      try {
         const reader = new FileReader();
         reader.onload = () => {
           const b64 = reader.result as string;
@@ -297,23 +327,16 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
           }));
         };
         reader.readAsDataURL(file);
+      } catch {
+        setUploadError(
+          language === 'id'
+            ? 'Gagal memproses file resep. Pastikan file gambar tidak rusak.'
+            : 'Failed to process prescription file. Please ensure file is not corrupted.'
+        );
       }
-    } catch {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const b64 = reader.result as string;
-        setUploadedFileUrl(b64);
-        setPrescription((p) => ({
-          ...p,
-          prescription_mode: 'upload',
-          prescription_file_url: b64,
-          prescription_file_name: file.name,
-          unsure: true,
-        }));
-      };
-      reader.readAsDataURL(file);
     } finally {
       setIsUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -327,6 +350,19 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
     }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleToggleUploadChecklist = () => {
+    if (prescriptionMode === 'upload') {
+      // Switching back to manual: reset file and set to manual
+      handleRemoveUploadedFile();
+      setPrescriptionMode('manual');
+      setPrescription((p) => ({ ...p, unsure: false, prescription_mode: 'manual' }));
+    } else {
+      // Switching to upload mode
+      setPrescriptionMode('upload');
+      setPrescription((p) => ({ ...p, unsure: true, prescription_mode: 'upload' }));
     }
   };
 
@@ -735,36 +771,48 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                   </p>
                 </div>
 
-                {/* Segmented Mode Selector: Manual Input vs Upload Doctor Slip */}
-                <div className="flex bg-neutral-100 p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPrescriptionMode('manual');
-                      setPrescription((p) => ({ ...p, unsure: false, prescription_mode: 'manual' }));
-                    }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                      prescriptionMode === 'manual'
-                        ? 'bg-white text-neutral-900 shadow-xs'
-                        : 'text-neutral-500 hover:text-neutral-800'
-                    }`}
-                  >
-                    {t('lens_wizard.tab_manual_prescription', 'Isi Manual Resep')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPrescriptionMode('upload');
-                      setPrescription((p) => ({ ...p, unsure: true, prescription_mode: 'upload' }));
-                    }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                {/* Checklist Option: Upload Prescription Photo */}
+                <div
+                  onClick={handleToggleUploadChecklist}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5 select-none ${
+                    prescriptionMode === 'upload'
+                      ? 'bg-neutral-900 text-white border-neutral-900 shadow-md'
+                      : 'bg-neutral-50 hover:bg-neutral-100/90 border-neutral-200 text-neutral-900'
+                  }`}
+                  role="checkbox"
+                  aria-checked={prescriptionMode === 'upload'}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                       prescriptionMode === 'upload'
-                        ? 'bg-white text-neutral-900 shadow-xs'
-                        : 'text-neutral-500 hover:text-neutral-800'
+                        ? 'bg-white border-white text-neutral-900'
+                        : 'border-neutral-400 bg-white text-transparent'
                     }`}
                   >
-                    {t('lens_wizard.tab_upload_prescription', 'Upload Foto / PDF Resep')}
-                  </button>
+                    <Check
+                      size={13}
+                      strokeWidth={3}
+                      className={prescriptionMode === 'upload' ? 'block' : 'hidden'}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold block leading-snug">
+                      {t(
+                        'lens_wizard.checkbox_upload_prescription',
+                        'Punya foto resep dokter? Centang untuk langsung upload foto resep'
+                      )}
+                    </span>
+                    <p
+                      className={`text-[11px] mt-1 leading-relaxed ${
+                        prescriptionMode === 'upload' ? 'text-neutral-300' : 'text-neutral-500'
+                      }`}
+                    >
+                      {t(
+                        'lens_wizard.checkbox_upload_prescription_desc',
+                        'Anda tidak perlu mengisi angka manual. Cukup lampirkan foto resep, tim spesialis optik kami yang akan membacanya.'
+                      )}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Upload Mode Box */}
@@ -774,7 +822,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
                           if (f) handleFileUpload(f);
@@ -859,7 +907,7 @@ export const LensCustomizationDrawer: React.FC<LensCustomizationDrawerProps> = (
                                 : t('lens_wizard.upload_drop_text', 'Tarik & lepas file di sini, atau klik untuk memilih file')}
                             </span>
                             <span className="text-[11px] text-neutral-400 mt-1 block">
-                              {t('lens_wizard.upload_prescription_desc', 'Ambil foto resep dokter atau pilih dokumen resep digital Anda (format JPG, PNG, WebP, PDF maks 10MB).')}
+                              {t('lens_wizard.upload_prescription_desc', 'Ambil foto resep dokter Anda (format JPG, PNG, WebP, HEIC maks 5MB).')}
                             </span>
                           </div>
                         </label>

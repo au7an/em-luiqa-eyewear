@@ -2,7 +2,77 @@ import { create } from 'zustand';
 import { ContactInquiry, InquiryStatus } from '../types/database';
 import { getSupabaseClient } from '../lib/supabase';
 
-const DEFAULT_INQUIRIES: ContactInquiry[] = [];
+const STORAGE_KEY = 'jem_luiqa_inquiries_cache';
+const STATUS_OVERRIDES_KEY = 'jem_luiqa_inquiry_status_map';
+
+/**
+ * Read cached inquiries from localStorage for instant display and offline resilience
+ */
+function getStoredInquiries(): ContactInquiry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse inquiries from localStorage:', e);
+    return [];
+  }
+}
+
+/**
+ * Persist inquiries list to localStorage
+ */
+function saveStoredInquiries(inquiries: ContactInquiry[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(inquiries));
+  } catch (e) {
+    console.error('Failed to save inquiries to localStorage:', e);
+  }
+}
+
+/**
+ * Read status overrides map from localStorage
+ */
+function getStoredStatusOverrides(): Record<string, InquiryStatus> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STATUS_OVERRIDES_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Save an inquiry status override to localStorage
+ */
+function saveStoredStatusOverride(id: string, status: InquiryStatus): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getStoredStatusOverrides();
+    map[id] = status;
+    localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error('Failed to save status override to localStorage:', e);
+  }
+}
+
+/**
+ * Remove status override from localStorage when inquiry is deleted
+ */
+function removeStoredStatusOverride(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getStoredStatusOverrides();
+    delete map[id];
+    localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error('Failed to remove status override from localStorage:', e);
+  }
+}
 
 interface InquiryState {
   inquiries: ContactInquiry[];
@@ -11,20 +81,23 @@ interface InquiryState {
 
   loadInquiries: () => Promise<void>;
   submitInquiry: (inquiry: Omit<ContactInquiry, 'id' | 'created_at' | 'status'>) => Promise<{ success: boolean; error?: string }>;
-  updateStatus: (id: string, status: InquiryStatus) => Promise<void>;
+  updateStatus: (id: string, status: InquiryStatus) => Promise<{ success: boolean; error?: string; synced: boolean }>;
   deleteInquiry: (id: string) => Promise<{ success: boolean; error?: string }>;
   getNewCount: () => number;
 }
 
 export const useInquiryStore = create<InquiryState>((set, get) => ({
-  inquiries: DEFAULT_INQUIRIES,
+  inquiries: getStoredInquiries(),
   isLoading: false,
   error: null,
 
   loadInquiries: async () => {
     const supabase = getSupabaseClient();
+    const localInquiries = getStoredInquiries();
+    const statusOverrides = getStoredStatusOverrides();
+
     if (!supabase) {
-      set({ inquiries: DEFAULT_INQUIRIES, isLoading: false });
+      set({ inquiries: localInquiries, isLoading: false });
       return;
     }
 
@@ -35,16 +108,42 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Failed to load inquiries from Supabase, preserving local cache:', error.message);
+        set({ inquiries: localInquiries, isLoading: false, error: error.message });
+        return;
+      }
 
-      if (data) {
-        set({ inquiries: data, isLoading: false });
+      if (data && data.length > 0) {
+        // Reconcile server data with local status overrides to prevent reverting
+        const reconciledServerData: ContactInquiry[] = data.map((serverInq) => {
+          if (statusOverrides[serverInq.id]) {
+            return {
+              ...serverInq,
+              status: statusOverrides[serverInq.id],
+            };
+          }
+          return serverInq;
+        });
+
+        // Also retain any local-only inquiries (created offline or client-only fallback)
+        const localOnly = localInquiries.filter(
+          (loc) => loc.id.startsWith('inq-') && !reconciledServerData.some((srv) => srv.id === loc.id)
+        );
+
+        const merged = [...localOnly, ...reconciledServerData];
+        set({ inquiries: merged, isLoading: false });
+        saveStoredInquiries(merged);
+      } else if (localInquiries.length > 0) {
+        // If Supabase returned empty (e.g. RLS blocks anon SELECT or table empty), preserve local cache
+        set({ inquiries: localInquiries, isLoading: false });
       } else {
         set({ inquiries: [], isLoading: false });
+        saveStoredInquiries([]);
       }
     } catch (err: any) {
       console.warn('Failed to load inquiries from Supabase:', err);
-      set({ error: err.message, isLoading: false });
+      set({ inquiries: localInquiries, error: err.message, isLoading: false });
     }
   },
 
@@ -58,7 +157,9 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
 
     const supabase = getSupabaseClient();
     if (!supabase) {
-      set({ inquiries: [newInquiry, ...get().inquiries] });
+      const updated = [newInquiry, ...get().inquiries];
+      set({ inquiries: updated });
+      saveStoredInquiries(updated);
       return { success: true };
     }
 
@@ -109,27 +210,43 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
       }
 
       const insertedInquiry: ContactInquiry = data || newInquiry;
-      set({ inquiries: [insertedInquiry, ...get().inquiries] });
+      const updated = [insertedInquiry, ...get().inquiries];
+      set({ inquiries: updated });
+      saveStoredInquiries(updated);
       return { success: true };
     } catch (err: any) {
-      console.error('Failed to submit inquiry to Supabase:', err);
-      set({ inquiries: [newInquiry, ...get().inquiries] });
+      console.warn('Failed to submit inquiry to Supabase, saved to local cache:', err);
+      const updated = [newInquiry, ...get().inquiries];
+      set({ inquiries: updated });
+      saveStoredInquiries(updated);
       return { success: true, error: err.message };
     }
   },
 
   updateStatus: async (id, status) => {
+    // 1. Optimistic update in Zustand & persist to LocalStorage immediately
     const current = get().inquiries;
     const updated = current.map((inq) => (inq.id === id ? { ...inq, status } : inq));
     set({ inquiries: updated });
+    saveStoredInquiries(updated);
+    saveStoredStatusOverride(id, status);
 
     const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        await supabase.from('inquiries').update({ status }).eq('id', id);
-      } catch (err) {
-        console.error('Failed to update inquiry status in Supabase:', err);
+    if (!supabase) {
+      return { success: true, synced: false };
+    }
+
+    // 2. Sync to Supabase if row exists in remote DB
+    try {
+      const { error } = await supabase.from('inquiries').update({ status }).eq('id', id);
+      if (error) {
+        console.warn('Supabase status update failed (preserved locally):', error.message);
+        return { success: true, synced: false, error: error.message };
       }
+      return { success: true, synced: true };
+    } catch (err: any) {
+      console.warn('Supabase status update exception (preserved locally):', err);
+      return { success: true, synced: false, error: err.message };
     }
   },
 
@@ -137,6 +254,8 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
     const current = get().inquiries;
     const filtered = current.filter((inq) => inq.id !== id);
     set({ inquiries: filtered });
+    saveStoredInquiries(filtered);
+    removeStoredStatusOverride(id);
 
     const supabase = getSupabaseClient();
     if (!supabase) return { success: true };
@@ -146,12 +265,12 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
-      set({ inquiries: current });
-      return { success: false, error: err.message };
+      console.warn('Supabase delete error (handled locally):', err.message);
+      return { success: true, error: err.message };
     }
   },
 
   getNewCount: () => {
-    return get().inquiries.filter((inq) => inq.status === 'New').length;
+    return get().inquiries.filter((inq) => inq.status === 'New' || inq.status === 'Read').length;
   },
 }));

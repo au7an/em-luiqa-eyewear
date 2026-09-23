@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Product, ProductVariant } from '../../types/database';
-import { Badge } from '../common/Badge';
 import { ColorSwatchPicker } from './ColorSwatchPicker';
 
 interface ProductCardProps {
@@ -55,75 +54,75 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link
       to={productLink}
-      className="group relative flex flex-col bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-neutral-300 hover:shadow-liquid transition-all duration-300"
+      className="group relative flex flex-col bg-white overflow-hidden border-r border-b border-neutral-200/80 transition-colors duration-300"
     >
-      {/* Product Image Stage */}
-      <div className="relative aspect-[4/3] bg-[#f8f8fa] overflow-hidden flex items-center justify-center p-4 sm:p-5">
+      {/* Product Image Stage (3:4 Editorial Portrait Aspect Ratio) - Full White Seamless Stage */}
+      <div className="relative aspect-[3/4] bg-white overflow-hidden flex items-center justify-center p-4 sm:p-6 lg:p-7 select-none">
         {/* Still Image */}
         <img
           src={primaryImage}
           alt={`${product.name} - ${activeVariant?.color_name || 'View'}`}
-          className={`w-full h-full object-contain transition-all duration-500 ease-out group-hover:scale-105 ${
+          className={`w-full h-full object-contain transition-all duration-700 ease-out group-hover:scale-[1.02] ${
             hoverImage ? 'group-hover:opacity-0' : ''
           }`}
           loading="lazy"
         />
 
-        {/* Model Hover Image (if available) */}
+        {/* Model/Campaign Hover Image */}
         {hoverImage && (
           <img
             src={hoverImage}
             alt={`${product.name} model wearing`}
-            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out scale-100 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out scale-100 group-hover:scale-[1.02]"
             loading="lazy"
           />
         )}
 
-        {/* Stock / Highlight Badges */}
-        <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 items-start pointer-events-none">
+        {/* Minimal Understated Badge / Stock Status */}
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-1 items-start pointer-events-none">
           {product.badge && (
-            <Badge variant="glass" className="font-semibold shadow-2xs text-[9px] px-2 py-0.5">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
               {product.badge}
-            </Badge>
+            </span>
           )}
           {currentStock === 'Sold Out' && (
-            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-600 text-white shadow-2xs">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-rose-600 bg-rose-50/80 px-1.5 py-0.5 border border-rose-100">
               Sold Out
             </span>
           )}
           {currentStock === 'Low Stock' && (
-            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-white shadow-2xs">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-700 bg-amber-50/80 px-1.5 py-0.5 border border-amber-100">
               Low Stock
             </span>
           )}
         </div>
       </div>
 
-      {/* Minimalist Info Section: Name, Price, and Color Swatches */}
-      <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 bg-white">
+      {/* Minimalist Editorial Info Section */}
+      <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 bg-white">
         <div>
           {/* Product Name */}
-          <h3 className="text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-black tracking-tight truncate mb-1">
+          <h3 className="text-xs sm:text-[13px] font-medium text-neutral-900 group-hover:text-neutral-500 transition-colors tracking-wide leading-snug line-clamp-2 mb-1.5">
             {product.name}
           </h3>
 
           {/* Pricing */}
-          <div className="flex items-baseline gap-1.5 mb-2.5">
-            <span className="text-xs sm:text-sm font-bold text-neutral-900">
+          <div className="flex items-baseline gap-2 mb-2.5">
+            <span className="text-xs text-neutral-600 font-normal">
               {currentPrice}
             </span>
             {currentCompareAt && (
-              <span className="text-[10px] sm:text-[11px] text-neutral-400 line-through">
+              <span className="text-[10px] text-neutral-400 line-through">
                 {currentCompareAt}
               </span>
             )}
           </div>
         </div>
 
-        {/* Color Swatch Picker */}
-        {product.variants && product.variants.length > 0 && (
+        {/* Minimal Micro-Swatches */}
+        {product.variants && product.variants.length > 1 && (
           <div
-            className="pt-1"
+            className="pt-1 mt-auto"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

@@ -15,6 +15,7 @@ import {
 import { PageHeader } from '../../components/admin/PageHeader';
 import { StatusBadge } from '../../components/admin/StatusBadge';
 import { AuditActionBadge } from '../../components/admin/AuditActionBadge';
+import { InquiryAnalyticsSection } from '../../components/admin/InquiryAnalyticsSection';
 import { useProductStore } from '../../store/useProductStore';
 import { useCampaignStore } from '../../store/useCampaignStore';
 import { useLensStore } from '../../store/useLensStore';
@@ -48,7 +49,7 @@ export const AdminDashboardPage: React.FC = () => {
   const activeCampaigns = campaigns.filter((c) => c.active).length;
   const activePromotions = promotions.filter((p) => p.active).length;
   const totalLenses = lenses.length;
-  const newInquiries = inquiries.filter((i) => i.status === 'New').length;
+  const newInquiries = inquiries.filter((i) => i.status === 'New' || i.status === 'Read').length;
 
   const recentProducts = products.slice(0, 5);
   const recentInquiries = inquiries.slice(0, 5);
@@ -181,6 +182,9 @@ export const AdminDashboardPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Inquiry & Order Analytics (Histogram & Pie Chart) */}
+      <InquiryAnalyticsSection inquiries={inquiries} />
 
       {/* 2-Column Tables (Recent Products & Recent Inquiries) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

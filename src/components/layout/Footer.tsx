@@ -144,11 +144,6 @@ export const Footer: React.FC = () => {
                   {language === 'id' ? 'Garansi & Perawatan' : 'Warranty & Care'} <ArrowUpRight size={13} />
                 </a>
               </li>
-              <li>
-                <Link to="/admin" className="text-neutral-500 hover:text-neutral-300 transition-colors">
-                  Studio Portal (Admin)
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -202,7 +197,17 @@ export const Footer: React.FC = () => {
             >
               <span>{t('footer.switch_language', 'Ubah Bahasa')} ({language.toUpperCase()})</span>
             </button>
-            <span className="text-neutral-500">{t('footer.guarantee_acetate')}</span>
+            <div className="text-neutral-500 flex items-center gap-1.5">
+              <span>Developed by</span>
+              <a
+                href="https://github.com/au7an"
+                target="_blank"
+                rel="noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors underline underline-offset-2 font-medium"
+              >
+                au7an
+              </a>
+            </div>
           </div>
         </div>
       </div>

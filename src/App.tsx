@@ -37,6 +37,7 @@ import { AdminInquiriesPage } from './pages/admin/AdminInquiriesPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminHomepageLayoutPage } from './pages/admin/AdminHomepageLayoutPage';
 import { AdminActivityPage } from './pages/admin/AdminActivityPage';
+import { AdminDeveloperPage } from './pages/admin/AdminDeveloperPage';
 
 // Stores
 import { useProductStore } from './store/useProductStore';
@@ -124,6 +125,7 @@ export function App() {
           <Route path="inquiries" element={<AdminInquiriesPage />} />
           <Route path="activity" element={<AdminActivityPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="developer" element={<AdminDeveloperPage />} />
         </Route>
 
         {/* Fallback */}

@@ -1,16 +1,18 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Search, X } from 'lucide-react';
+import { SlidersHorizontal, Search, X, ChevronDown } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import { useDiscoveryStore } from '../store/useDiscoveryStore';
 import { ProductCard } from '../components/catalog/ProductCard';
-import { FilterPopover } from '../components/catalog/FilterPopover';
+import { CatalogFilterDrawer } from '../components/catalog/CatalogFilterDrawer';
 import { ProductCategory } from '../types/database';
 import { useLanguageStore } from '../store/useLanguageStore';
-import { AnimatedButton } from '../components/common/AnimatedButton';
 
 export const CatalogPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const {
     products,
     selectedCategory,
@@ -85,14 +87,10 @@ export const CatalogPage: React.FC = () => {
     return chips;
   }, [selectedFrameShapes, selectedFaceShapes, selectedOccasions, frameShapes, faceShapes, occasions, toggleFrameShape, toggleFaceShape, toggleOccasion]);
 
-  const hasAnyFilterActive =
-    selectedCategory !== 'all' ||
-    searchQuery.trim() !== '' ||
-    selectedFrameShapes.length > 0 ||
-    selectedFaceShapes.length > 0 ||
-    selectedOccasions.length > 0;
+  const activeFilterCount =
+    selectedFrameShapes.length + selectedFaceShapes.length + selectedOccasions.length;
 
-  // Filter & Sort Logic: Standard E-Commerce (OR within groups, AND across groups)
+  // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => p.published);
 
@@ -105,7 +103,6 @@ export const CatalogPage: React.FC = () => {
     if (selectedFrameShapes.length > 0) {
       list = list.filter((p) => {
         if (p.frame_shape_id && selectedFrameShapes.includes(p.frame_shape_id)) return true;
-        // Fallback matching by name/slug if legacy string
         if (p.frame_shape) {
           const match = frameShapes.some(
             (s) => selectedFrameShapes.includes(s.id) && s.name.toLowerCase() === p.frame_shape?.toLowerCase()
@@ -146,7 +143,7 @@ export const CatalogPage: React.FC = () => {
       });
     }
 
-    // 6. Sorting Logic (9 Options)
+    // 6. Sorting Logic
     const parsePrice = (priceStr?: string) => {
       if (!priceStr) return 0;
       const num = Number(priceStr.replace(/[^0-9]/g, ''));
@@ -211,155 +208,151 @@ export const CatalogPage: React.FC = () => {
   }, [products, selectedCategory, selectedFrameShapes, selectedFaceShapes, selectedOccasions, searchQuery, sortBy, frameShapes]);
 
   return (
-    <div className="pt-28 sm:pt-36 pb-24 px-4 sm:px-8 max-w-7xl mx-auto min-h-screen">
-      {/* Page Header */}
-      <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
-        <span className="text-xs font-bold uppercase tracking-[0.25em] text-neutral-400 block mb-2">
+    <div className="pt-28 sm:pt-36 pb-24 px-4 sm:px-8 lg:px-12 max-w-7xl mx-auto min-h-screen">
+      {/* Sleek Direct Editorial Header */}
+      <div className="mb-6 sm:mb-8">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-neutral-400 block mb-1">
           {language === 'id' ? 'Koleksi Studio 2026' : 'The 2026 Collection'}
         </span>
-        <h1 className="editorial-title text-4xl sm:text-5xl lg:text-6xl text-neutral-900 uppercase mb-4">
-          {t('catalog.title', 'All Eyewear')}
+        <h1 className="text-xl sm:text-2xl font-medium tracking-[0.14em] uppercase text-neutral-900">
+          {selectedCategory === 'sunglasses'
+            ? (language === 'id' ? 'Kacamata Hitam' : 'Sunglasses')
+            : selectedCategory === 'optical'
+            ? (language === 'id' ? 'Kacamata Optik' : 'Optical Frames')
+            : t('catalog.title', 'All Eyewear')}
         </h1>
-        <p className="text-sm text-neutral-500 font-light leading-relaxed">
-          {t('catalog.subtitle', 'Architectural silhouettes meticulously crafted from cured Italian acetate and titanium alloys. Filter by silhouette shape, facial contour harmony, and curated occasion.')}
-        </p>
       </div>
 
-      {/* Primary Filter & Controls Bar */}
-      <div className="relative z-30 bg-neutral-50/90 backdrop-blur-md rounded-2xl p-3 sm:p-4 mb-4 border border-neutral-200/70 shadow-xs flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          
-          {/* Category Pill Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-white rounded-full border border-neutral-200/80 shadow-2xs overflow-x-auto">
-            {[
-              { id: 'all', label: language === 'id' ? 'Semua Siluet' : 'All Silhouettes' },
-              { id: 'sunglasses', label: language === 'id' ? 'Kacamata Hitam' : 'Sunglasses' },
-              { id: 'optical', label: language === 'id' ? 'Kacamata Optik' : 'Optical Frames' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleCategoryChange(tab.id as any)}
-                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
-                  selectedCategory === tab.id
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'text-neutral-600 hover:text-black hover:bg-neutral-100'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      {/* Horizontal Category Navigation (Gucci Style) */}
+      <nav
+        className="flex items-center gap-6 sm:gap-10 pb-3 mb-6 border-b border-neutral-200/80 overflow-x-auto no-scrollbar"
+        aria-label="Product categories"
+      >
+        {[
+          { id: 'all', label: language === 'id' ? 'Semua Siluet' : 'All Silhouettes' },
+          { id: 'sunglasses', label: language === 'id' ? 'Kacamata Hitam' : 'Sunglasses' },
+          { id: 'optical', label: language === 'id' ? 'Kacamata Optik' : 'Optical Frames' },
+        ].map((tab) => {
+          const isActive = selectedCategory === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleCategoryChange(tab.id as any)}
+              className={`text-xs sm:text-[13px] uppercase tracking-[0.16em] transition-colors whitespace-nowrap pb-2 -mb-3 border-b-2 ${
+                isActive
+                  ? 'font-bold text-neutral-900 border-neutral-900'
+                  : 'font-normal text-neutral-400 hover:text-neutral-800 border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
 
-          {/* Search & Sort Controls */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            {/* Quick Search Input */}
-            <div className="relative flex-1 sm:w-56">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('catalog.search_placeholder', 'Search models & colors...')}
-                className="w-full bg-white pl-9 pr-8 py-2 rounded-full border border-neutral-200 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-black transition-colors"
-              />
+      {/* Inline Metadata & Control Bar (XX Items sorted by Recommended | Search & Filters) */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Left: Item Counter & Inline Sort Trigger */}
+        <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-neutral-700 tracking-wide">
+          <span>
+            <strong className="font-semibold text-neutral-900">{filteredProducts.length}</strong>{' '}
+            {language === 'id' ? 'Siluet diurutkan dari' : 'Items sorted by'}
+          </span>
+          <div className="relative inline-flex items-center">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="appearance-none bg-transparent font-medium underline underline-offset-4 decoration-neutral-400 hover:decoration-neutral-900 text-neutral-900 cursor-pointer pr-4 focus:outline-none focus:ring-0 transition-colors"
+              aria-label="Sort products"
+            >
+              <option value="featured">{t('catalog.sort_featured', 'Recommended')}</option>
+              <option value="relevant">{language === 'id' ? 'Paling Relevan' : 'Most relevant'}</option>
+              <option value="best-selling">{language === 'id' ? 'Terlaris' : 'Best selling'}</option>
+              <option value="title-asc">{t('catalog.sort_name_az', 'Alphabetically, A-Z')}</option>
+              <option value="title-desc">{t('catalog.sort_name_za', 'Alphabetically, Z-A')}</option>
+              <option value="price-asc">{t('catalog.sort_price_low', 'Price, low to high')}</option>
+              <option value="price-desc">{t('catalog.sort_price_high', 'Price, high to low')}</option>
+              <option value="date-asc">{language === 'id' ? 'Tanggal: Lama ke Baru' : 'Date, old to new'}</option>
+              <option value="date-desc">{t('catalog.sort_date_new', 'Date, new to old')}</option>
+            </select>
+            <ChevronDown size={11} className="absolute right-0 pointer-events-none text-neutral-600" />
+          </div>
+        </div>
+
+        {/* Right: Integrated Minimal Search & Filter Drawer Trigger */}
+        <div className="flex items-center gap-5 ml-auto">
+          {/* Minimal Search Input */}
+          <div className="relative flex items-center">
+            <div
+              className={`flex items-center transition-all duration-300 ${
+                isSearchOpen || searchQuery
+                  ? 'w-44 sm:w-56 border-b border-neutral-900'
+                  : 'w-6'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="text-neutral-500 hover:text-black transition-colors"
+                aria-label="Search silhouettes"
+              >
+                <Search size={15} />
+              </button>
+              {(isSearchOpen || searchQuery) && (
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={language === 'id' ? 'Cari model & warna...' : 'Search silhouettes...'}
+                  autoFocus
+                  className="w-full bg-transparent pl-2.5 pr-5 py-0.5 text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none"
+                />
+              )}
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
+                  className="text-neutral-400 hover:text-black absolute right-0"
+                  aria-label="Clear search"
                 >
-                  <X size={13} />
+                  <X size={12} />
                 </button>
               )}
             </div>
-
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <SlidersHorizontal
-                size={14}
-                className="text-neutral-400 hidden sm:inline"
-              />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-white px-3 sm:px-4 py-2 rounded-full border border-neutral-200 text-xs font-semibold uppercase tracking-wider text-neutral-700 focus:outline-none focus:border-black cursor-pointer shadow-2xs hover:border-neutral-400 transition-colors"
-                aria-label="Sort products"
-              >
-                <option value="featured">{t('catalog.sort_featured', 'Featured')}</option>
-                <option value="relevant">{language === 'id' ? 'Paling Relevan' : 'Most relevant'}</option>
-                <option value="best-selling">{language === 'id' ? 'Terlaris' : 'Best selling'}</option>
-                <option value="title-asc">{t('catalog.sort_name_az', 'Alphabetically, A-Z')}</option>
-                <option value="title-desc">{t('catalog.sort_name_za', 'Alphabetically, Z-A')}</option>
-                <option value="price-asc">{t('catalog.sort_price_low', 'Price, low to high')}</option>
-                <option value="price-desc">{t('catalog.sort_price_high', 'Price, high to low')}</option>
-                <option value="date-asc">{language === 'id' ? 'Tanggal: Lama ke Baru' : 'Date, old to new'}</option>
-                <option value="date-desc">{t('catalog.sort_date_new', 'Date, new to old')}</option>
-              </select>
-            </div>
           </div>
-        </div>
 
-        {/* Discovery Attribute Popovers Row */}
-        <div className="pt-2 border-t border-neutral-200/60 flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mr-1 hidden sm:inline">
-            {t('catalog.refine_by', 'Refine By:')}
-          </span>
-
-          <FilterPopover
-            label={t('catalog.filter_shape', 'Frame Shape')}
-            options={frameShapes}
-            selectedIds={selectedFrameShapes}
-            onToggle={toggleFrameShape}
-            onClear={() => selectedFrameShapes.forEach(id => toggleFrameShape(id))}
-          />
-
-          <FilterPopover
-            label={t('catalog.filter_face_shape', 'Face Shape')}
-            options={faceShapes}
-            selectedIds={selectedFaceShapes}
-            onToggle={toggleFaceShape}
-            onClear={() => selectedFaceShapes.forEach(id => toggleFaceShape(id))}
-          />
-
-          <FilterPopover
-            label={t('catalog.filter_occasion', 'Occasion')}
-            options={occasions}
-            selectedIds={selectedOccasions}
-            onToggle={toggleOccasion}
-            onClear={() => selectedOccasions.forEach(id => toggleOccasion(id))}
-          />
-
-          {hasAnyFilterActive && (
-            <button
-              onClick={() => {
-                handleCategoryChange('all');
-                resetDiscoveryFilters();
-              }}
-              className="ml-auto text-xs text-neutral-500 hover:text-black font-bold uppercase tracking-wider underline underline-offset-2 px-2"
-            >
-              {language === 'id' ? 'RESET SEMUA' : 'RESET ALL'}
-            </button>
-          )}
+          {/* Filters (+) Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsFilterDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] font-semibold text-neutral-900 hover:text-neutral-500 transition-colors py-1 cursor-pointer"
+          >
+            <SlidersHorizontal size={13} />
+            <span>{language === 'id' ? 'FILTER' : 'FILTERS'}</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-neutral-900 text-white text-[9px] flex items-center justify-center font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Active Filter Chips */}
+      {/* Active Filter Chips Bar */}
       {activeChips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-6 px-1">
-          <span className="text-xs text-neutral-400 font-semibold uppercase tracking-wider text-[10px]">
+        <div className="flex flex-wrap items-center gap-2 mb-6 pt-1">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
             {language === 'id' ? 'FILTER AKTIF:' : 'ACTIVE FILTERS:'}
           </span>
           {activeChips.map((chip) => (
             <span
               key={`${chip.group}-${chip.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-900 text-white text-xs font-semibold uppercase tracking-wider shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-100 text-neutral-800 text-[11px] tracking-wider uppercase border border-neutral-200/60"
             >
               <span>{chip.label}</span>
               <button
                 onClick={chip.onRemove}
-                className="hover:text-neutral-300 rounded-full p-0.5"
+                className="hover:text-black text-neutral-400 transition-colors"
                 title={`Remove ${chip.label}`}
               >
                 <X size={11} />
@@ -368,54 +361,61 @@ export const CatalogPage: React.FC = () => {
           ))}
           <button
             onClick={resetDiscoveryFilters}
-            className="text-xs text-neutral-500 hover:text-black font-bold uppercase tracking-wider ml-2 underline"
+            className="text-[11px] text-neutral-500 hover:text-black font-semibold uppercase tracking-wider ml-2 underline underline-offset-2"
           >
             {language === 'id' ? 'HAPUS SEMUA' : 'CLEAR ALL'}
           </button>
         </div>
       )}
 
-      {/* Active Count Bar */}
-      <div className="flex items-center justify-between text-xs text-neutral-500 font-medium mb-6 px-1">
-        <div>
-          {language === 'id' ? (
-            <>Menampilkan <strong className="text-neutral-900">{filteredProducts.length}</strong> siluet</>
-          ) : (
-            <>Showing <strong className="text-neutral-900">{filteredProducts.length}</strong> styles</>
-          )}
-        </div>
-      </div>
-
-      {/* Products Grid */}
+      {/* Hairline Editorial Grid: 2 Columns on Mobile, 3 Columns on Desktop */}
       {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="border-t border-l border-neutral-200/80 grid grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-24 bg-neutral-50 rounded-3xl border border-neutral-200/60 p-8">
-          <p className="text-base font-bold text-neutral-800 mb-2">
+        <div className="text-center py-24 sm:py-32 border border-dashed border-neutral-200 p-8 my-6">
+          <p className="text-sm font-semibold tracking-wider uppercase text-neutral-900 mb-2">
             {t('catalog.no_products', 'No frames matched your criteria')}
           </p>
           <p className="text-xs text-neutral-500 max-w-sm mx-auto mb-6">
             {language === 'id'
               ? 'Coba sesuaikan filter pencarian Anda atau hapus kata kunci yang dimasukkan.'
-              : 'Try adjusting your discovery filters, switching face shapes, or clearing search keywords.'}
+              : 'Try adjusting your discovery filters or clearing search keywords.'}
           </p>
-          <AnimatedButton
+          <button
             type="button"
-            variant="dark"
             onClick={() => {
               handleCategoryChange('all');
               resetDiscoveryFilters();
+              setSearchQuery('');
             }}
-            className="px-6 py-2.5 rounded-full text-xs uppercase tracking-wider font-semibold"
+            className="px-6 py-2.5 bg-neutral-900 text-white hover:bg-black text-xs uppercase tracking-[0.16em] font-semibold transition-colors"
           >
             {t('catalog.clear_filters', 'View All Silhouettes')}
-          </AnimatedButton>
+          </button>
         </div>
       )}
+
+      {/* Slide-out Luxury Filter Drawer */}
+      <CatalogFilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        frameShapes={frameShapes}
+        faceShapes={faceShapes}
+        occasions={occasions}
+        selectedFrameShapes={selectedFrameShapes}
+        selectedFaceShapes={selectedFaceShapes}
+        selectedOccasions={selectedOccasions}
+        onToggleFrameShape={toggleFrameShape}
+        onToggleFaceShape={toggleFaceShape}
+        onToggleOccasion={toggleOccasion}
+        onResetAll={resetDiscoveryFilters}
+        totalMatches={filteredProducts.length}
+        language={language}
+      />
     </div>
   );
 };

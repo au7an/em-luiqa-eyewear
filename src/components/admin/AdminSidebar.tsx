@@ -14,6 +14,7 @@ import {
   X,
   LayoutTemplate,
   ShieldCheck,
+  Terminal,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInquiryStore } from '../../store/useInquiryStore';
@@ -51,6 +52,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
     },
     { label: t('admin.activity', 'Activity'), path: '/admin/activity', icon: ShieldCheck },
     { label: t('admin.settings', 'Settings'), path: '/admin/settings', icon: Settings },
+    { label: 'Developer', path: '/admin/developer', icon: Terminal },
   ];
 
   return (

@@ -61,8 +61,9 @@ export const AdminInquiriesPage: React.FC = () => {
       Canceled: 0,
     };
     inquiries.forEach((inq) => {
-      if (inq.status in res) {
-        res[inq.status as keyof typeof res]++;
+      const statusKey = inq.status === 'Read' ? 'New' : inq.status;
+      if (statusKey in res) {
+        res[statusKey as keyof typeof res]++;
       }
     });
     return res;
@@ -70,7 +71,8 @@ export const AdminInquiriesPage: React.FC = () => {
 
   const filteredInquiries = useMemo(() => {
     return inquiries.filter((inq) => {
-      const matchesStatus = statusFilter === 'all' || inq.status === statusFilter;
+      const effectiveStatus = inq.status === 'Read' ? 'New' : inq.status;
+      const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
       if (!matchesStatus) return false;
 
       if (!searchQuery.trim()) return true;
@@ -89,20 +91,25 @@ export const AdminInquiriesPage: React.FC = () => {
 
   const handleOpenDetail = (inq: ContactInquiry) => {
     setSelectedInquiry(inq);
-    if (inq.status === 'New') {
-      updateStatus(inq.id, 'Read');
-    }
   };
 
   const handleStatusChange = async (newStatus: InquiryStatus) => {
     if (!selectedInquiry) return;
-    await updateStatus(selectedInquiry.id, newStatus);
+    const res = await updateStatus(selectedInquiry.id, newStatus);
     setSelectedInquiry({ ...selectedInquiry, status: newStatus });
-    addToast({
-      type: 'success',
-      title: 'Status Diperbarui',
-      message: `Pesanan ditandai sebagai "${newStatus}".`,
-    });
+    if (res.synced) {
+      addToast({
+        type: 'success',
+        title: 'Status Diperbarui',
+        message: `Pesanan ditandai sebagai "${newStatus}" (tersinkron ke cloud).`,
+      });
+    } else {
+      addToast({
+        type: 'info',
+        title: 'Status Diperbarui',
+        message: `Pesanan ditandai sebagai "${newStatus}". Perubahan tersimpan aman di browser studio.`,
+      });
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -144,7 +151,7 @@ export const AdminInquiriesPage: React.FC = () => {
     {
       header: 'Customer / Kontak WA',
       render: (inq) => {
-        const isNew = inq.status === 'New';
+        const isNew = inq.status === 'New' || inq.status === 'Read';
         return (
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
@@ -257,7 +264,7 @@ export const AdminInquiriesPage: React.FC = () => {
     {
       header: 'Status',
       className: 'w-28',
-      render: (inq) => <StatusBadge status={inq.status} size="sm" />,
+      render: (inq) => <StatusBadge status={inq.status === 'Read' ? 'New' : inq.status} size="sm" />,
     },
     {
       header: 'Aksi',
@@ -711,7 +718,7 @@ export const AdminInquiriesPage: React.FC = () => {
                     type="button"
                     onClick={() => handleStatusChange(st)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      selectedInquiry.status === st
+                      selectedInquiry.status === st || (selectedInquiry.status === 'Read' && st === 'New')
                         ? 'bg-neutral-900 text-white shadow-xs'
                         : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                     }`}

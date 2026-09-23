@@ -323,13 +323,6 @@ export const Navbar: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  to="/admin"
-                  onClick={closeMobileMenu}
-                  className="text-xs text-neutral-400 hover:text-black block"
-                >
-                  Studio Portal (Admin) →
-                </Link>
                 <div className="text-[11px] text-neutral-400">
                   © 2026 Jem Luiqa Eyewear.
                 </div>
